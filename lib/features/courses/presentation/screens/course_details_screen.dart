@@ -48,6 +48,61 @@ class _CourseDetailsView extends StatelessWidget {
 
   const _CourseDetailsView({required this.courseId});
 
+  void _showAutoBuildDialog(BuildContext context, CourseDetailsBloc bloc) {
+    final batchController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF141414),
+        shape: RoundedRectangleBorder(
+          side: BorderSide(
+            color: const Color(0xFF00E676).withValues(alpha: 0.2),
+          ),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        title: const Text(
+          'AUTO BUILD TREE ENGINE',
+          style: TextStyle(
+            color: Color(0xFF00E676),
+            fontSize: 14,
+            letterSpacing: 2,
+          ),
+        ),
+        content: TextField(
+          controller: batchController,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            labelText: 'TARGET BATCH NAME',
+            labelStyle: TextStyle(color: Colors.white54, fontSize: 12),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => context.pop(),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              if (batchController.text.trim().isNotEmpty) {
+                bloc.add(
+                  AutoBuildCourseEvent(courseId, batchController.text.trim()),
+                );
+              }
+              context.pop();
+            },
+            child: const Text(
+              'LAUNCH GENERATOR',
+              style: TextStyle(color: Color(0xFF00E676)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showNodeDialog(
     BuildContext context,
     CourseDetailsBloc bloc, {
@@ -62,14 +117,23 @@ class _CourseDetailsView extends StatelessWidget {
     final orderController = TextEditingController(
       text: isEdit ? existingNode['sort_order'].toString() : '1',
     );
-    final urlController = TextEditingController(
-      text: isEdit && itemType == 'video' ? existingNode['video_url'] : '',
+    final attachmentController = TextEditingController(
+      text: isEdit && itemType == 'video' ? existingNode['attachment_url'] : '',
     );
     final durationController = TextEditingController(
       text: isEdit && itemType == 'video'
           ? existingNode['duration'].toString()
           : '0',
     );
+    final downloadUrlController = TextEditingController(
+      text: isEdit && itemType == 'video' && existingNode['vault'] != null
+          ? existingNode['vault']['download_url']
+          : '',
+    );
+
+    int? selectedVaultId = isEdit && itemType == 'video'
+        ? existingNode['vault_id']
+        : null;
 
     showDialog(
       context: context,
@@ -91,50 +155,132 @@ class _CourseDetailsView extends StatelessWidget {
             letterSpacing: 2,
           ),
         ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: titleController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: '${itemType.toUpperCase()} TITLE',
-                  labelStyle: const TextStyle(
-                    color: Colors.white54,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              TextField(
-                controller: orderController,
-                style: const TextStyle(color: Colors.white),
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'SORT ORDER',
-                  labelStyle: TextStyle(color: Colors.white54, fontSize: 12),
-                ),
-              ),
-              if (itemType == 'video') ...[
+        content: StatefulBuilder(
+          builder: (context, setDialogState) => SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 TextField(
-                  controller: urlController,
+                  controller: titleController,
                   style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'HLS STREAM URL',
-                    labelStyle: TextStyle(color: Colors.white54, fontSize: 12),
+                  decoration: InputDecoration(
+                    labelText: '${itemType.toUpperCase()} TITLE',
+                    labelStyle: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
                 TextField(
-                  controller: durationController,
+                  controller: orderController,
                   style: const TextStyle(color: Colors.white),
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'DURATION (MINUTES)',
+                    labelText: 'SORT ORDER',
                     labelStyle: TextStyle(color: Colors.white54, fontSize: 12),
                   ),
                 ),
+                if (itemType == 'video') ...[
+                  TextField(
+                    controller: durationController,
+                    style: const TextStyle(color: Colors.white),
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'DURATION (MINUTES)',
+                      labelStyle: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  TextField(
+                    controller: attachmentController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'LAB ATTACHMENT URL',
+                      labelStyle: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  FutureBuilder<List<dynamic>>(
+                    future: bloc.repository.getVaultItems(courseId),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const LinearProgressIndicator(
+                          color: Color(0xFF00E676),
+                        );
+                      }
+                      final vaultItems = snapshot.data!;
+                      return DropdownButtonFormField<int>(
+                        initialValue: selectedVaultId,
+                        dropdownColor: const Color(0xFF141414),
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(
+                          labelText: 'CONNECT VIDEO VAULT ITEM',
+                          labelStyle: TextStyle(
+                            color: Color(0xFF00E676),
+                            fontSize: 12,
+                          ),
+                        ),
+                        items: [
+                          if (isEdit && existingNode['vault_id'] != null)
+                            DropdownMenuItem<int>(
+                              value: existingNode['vault_id'],
+                              child: Text(
+                                'CURRENT: [ID: ${existingNode['vault_id']}] ${existingNode['title']}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white54,
+                                ),
+                              ),
+                            ),
+                          ...vaultItems.map(
+                            (item) => DropdownMenuItem<int>(
+                              value: item['id'],
+                              child: Text(
+                                '[ID: ${item['id']}] ${item['original_filename'] ?? item['uuid'].toString().substring(0, 8)}',
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          setDialogState(() {
+                            selectedVaultId = val;
+                            if (val != null) {
+                              final selectedItem = vaultItems.firstWhere(
+                                (element) => element['id'] == val,
+                                orElse: () => null,
+                              );
+                              if (selectedItem != null &&
+                                  selectedItem['download_url'] != null) {
+                                downloadUrlController.text =
+                                    selectedItem['download_url'];
+                              }
+                            }
+                          });
+                        },
+                      );
+                    },
+                  ),
+                  if (selectedVaultId != null)
+                    TextField(
+                      controller: downloadUrlController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: const InputDecoration(
+                        labelText: 'MP6 DOWNLOAD PATH (CDN URL)',
+                        labelStyle: TextStyle(
+                          color: Colors.white54,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
         actions: [
@@ -146,7 +292,14 @@ class _CourseDetailsView extends StatelessWidget {
             ),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
+              if (selectedVaultId != null &&
+                  downloadUrlController.text.trim().isNotEmpty) {
+                await bloc.repository.updateVaultUrl(
+                  selectedVaultId!,
+                  downloadUrlController.text.trim(),
+                );
+              }
               if (isEdit) {
                 bloc.add(
                   UpdateNodeEvent(
@@ -154,10 +307,13 @@ class _CourseDetailsView extends StatelessWidget {
                     existingNode['id'],
                     titleController.text,
                     int.parse(orderController.text),
-                    videoUrl: itemType == 'video' ? urlController.text : null,
                     duration: itemType == 'video'
                         ? int.parse(durationController.text)
                         : null,
+                    attachmentUrl: itemType == 'video'
+                        ? attachmentController.text
+                        : null,
+                    vaultId: itemType == 'video' ? selectedVaultId : null,
                   ),
                 );
               } else {
@@ -168,14 +324,17 @@ class _CourseDetailsView extends StatelessWidget {
                     itemType,
                     titleController.text,
                     int.parse(orderController.text),
-                    videoUrl: itemType == 'video' ? urlController.text : null,
                     duration: itemType == 'video'
                         ? int.parse(durationController.text)
                         : null,
+                    attachmentUrl: itemType == 'video'
+                        ? attachmentController.text
+                        : null,
+                    vaultId: itemType == 'video' ? selectedVaultId : null,
                   ),
                 );
               }
-              context.pop();
+              if (context.mounted) context.pop();
             },
             child: const Text(
               'EXECUTE',
@@ -212,6 +371,11 @@ class _CourseDetailsView extends StatelessWidget {
             ),
           ),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.bolt, color: Color(0xFF00E676)),
+              onPressed: () => _showAutoBuildDialog(context, bloc),
+              tooltip: 'AUTO BUILD FROM VAULT',
+            ),
             IconButton(
               icon: const Icon(
                 Icons.create_new_folder_outlined,
@@ -284,7 +448,7 @@ class _CourseDetailsView extends StatelessWidget {
                 child: tree.isEmpty
                     ? const Center(
                         child: Text(
-                          'NO DATA FOUND. CLICK THE FOLDER ICON TO START.',
+                          'NO DATA FOUND. CLICK THE BOLT ICON FOR AUTO-BUILD.',
                           style: TextStyle(
                             color: Colors.white54,
                             fontFamily: 'monospace',
@@ -357,7 +521,6 @@ class RecursiveNodeWidget extends StatefulWidget {
 }
 
 class _RecursiveNodeWidgetState extends State<RecursiveNodeWidget> {
-  // اینجا پیش‌فرض به بسته تغییر کرد
   bool isExpanded = false;
 
   @override

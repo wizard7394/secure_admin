@@ -16,6 +16,8 @@ class CreateNodeEvent extends CourseDetailsEvent {
   final int sortOrder;
   final String? videoUrl;
   final int? duration;
+  final String? attachmentUrl;
+  final int? vaultId;
   CreateNodeEvent(
     this.courseId,
     this.parentId,
@@ -24,6 +26,8 @@ class CreateNodeEvent extends CourseDetailsEvent {
     this.sortOrder, {
     this.videoUrl,
     this.duration,
+    this.attachmentUrl,
+    this.vaultId,
   });
 }
 
@@ -34,6 +38,8 @@ class UpdateNodeEvent extends CourseDetailsEvent {
   final int sortOrder;
   final String? videoUrl;
   final int? duration;
+  final String? attachmentUrl;
+  final int? vaultId;
   UpdateNodeEvent(
     this.courseId,
     this.nodeId,
@@ -41,6 +47,8 @@ class UpdateNodeEvent extends CourseDetailsEvent {
     this.sortOrder, {
     this.videoUrl,
     this.duration,
+    this.attachmentUrl,
+    this.vaultId,
   });
 }
 
@@ -54,6 +62,12 @@ class DeleteNodeEvent extends CourseDetailsEvent {
   final int courseId;
   final int nodeId;
   DeleteNodeEvent(this.courseId, this.nodeId);
+}
+
+class AutoBuildCourseEvent extends CourseDetailsEvent {
+  final int courseId;
+  final String batchName;
+  AutoBuildCourseEvent(this.courseId, this.batchName);
 }
 
 abstract class CourseDetailsState {}
@@ -93,6 +107,8 @@ class CourseDetailsBloc extends Bloc<CourseDetailsEvent, CourseDetailsState> {
           event.sortOrder,
           videoUrl: event.videoUrl,
           duration: event.duration,
+          attachmentUrl: event.attachmentUrl,
+          vaultId: event.vaultId,
         );
         await _fetchData(event.courseId, emit);
       } catch (e) {
@@ -109,6 +125,8 @@ class CourseDetailsBloc extends Bloc<CourseDetailsEvent, CourseDetailsState> {
           event.sortOrder,
           videoUrl: event.videoUrl,
           duration: event.duration,
+          attachmentUrl: event.attachmentUrl,
+          vaultId: event.vaultId,
         );
         await _fetchData(event.courseId, emit);
       } catch (e) {
@@ -126,6 +144,8 @@ class CourseDetailsBloc extends Bloc<CourseDetailsEvent, CourseDetailsState> {
             node['sort_order'],
             videoUrl: node['video_url'],
             duration: node['duration'],
+            attachmentUrl: node['attachment_url'],
+            vaultId: node['vault_id'],
           );
         }
         await _fetchData(event.courseId, emit);
@@ -138,6 +158,16 @@ class CourseDetailsBloc extends Bloc<CourseDetailsEvent, CourseDetailsState> {
       _emitBackgroundUpdating(emit);
       try {
         await repository.deleteNode(event.nodeId);
+        await _fetchData(event.courseId, emit);
+      } catch (e) {
+        emit(CourseDetailsError(e.toString().replaceAll('Exception: ', '')));
+      }
+    });
+
+    on<AutoBuildCourseEvent>((event, emit) async {
+      _emitBackgroundUpdating(emit);
+      try {
+        await repository.autoBuildCourse(event.courseId, event.batchName);
         await _fetchData(event.courseId, emit);
       } catch (e) {
         emit(CourseDetailsError(e.toString().replaceAll('Exception: ', '')));
