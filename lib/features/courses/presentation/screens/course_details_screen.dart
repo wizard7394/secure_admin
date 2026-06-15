@@ -293,52 +293,102 @@ class _CourseDetailsView extends StatelessWidget {
           ),
           TextButton(
             onPressed: () async {
-              if (selectedVaultId != null &&
-                  downloadUrlController.text.trim().isNotEmpty) {
-                await bloc.repository.updateVaultUrl(
-                  selectedVaultId!,
-                  downloadUrlController.text.trim(),
-                );
-              }
-              if (isEdit) {
-                bloc.add(
-                  UpdateNodeEvent(
-                    courseId,
-                    existingNode['id'],
-                    titleController.text,
-                    int.parse(orderController.text),
-                    duration: itemType == 'video'
-                        ? int.parse(durationController.text)
-                        : null,
-                    attachmentUrl: itemType == 'video'
-                        ? attachmentController.text
-                        : null,
-                    vaultId: itemType == 'video' ? selectedVaultId : null,
+              // برای جلوگیری از ارور کانتکست، مسنجر رو قبل از پاپ شدن دیالوگ می‌گیریم
+              final messenger = ScaffoldMessenger.of(context);
+
+              try {
+                // آپدیت لینک دانلود خزانه در صورت وجود
+                if (selectedVaultId != null &&
+                    downloadUrlController.text.trim().isNotEmpty) {
+                  await bloc.repository.updateVaultUrl(
+                    selectedVaultId!,
+                    downloadUrlController.text.trim(),
+                  );
+                }
+
+                // شلیک ایونت به BLoC
+                if (isEdit) {
+                  bloc.add(
+                    UpdateNodeEvent(
+                      courseId,
+                      existingNode['id'],
+                      titleController.text,
+                      int.parse(orderController.text),
+                      duration: itemType == 'video'
+                          ? int.parse(durationController.text)
+                          : null,
+                      attachmentUrl: itemType == 'video'
+                          ? attachmentController.text
+                          : null,
+                      vaultId: itemType == 'video' ? selectedVaultId : null,
+                    ),
+                  );
+                } else {
+                  bloc.add(
+                    CreateNodeEvent(
+                      courseId,
+                      parentId,
+                      itemType,
+                      titleController.text,
+                      int.parse(orderController.text),
+                      duration: itemType == 'video'
+                          ? int.parse(durationController.text)
+                          : null,
+                      attachmentUrl: itemType == 'video'
+                          ? attachmentController.text
+                          : null,
+                      vaultId: itemType == 'video' ? selectedVaultId : null,
+                    ),
+                  );
+                }
+
+                // بستن امن دیالوگ
+                if (context.mounted) {
+                  context.pop();
+                }
+
+                // نمایش اسنک‌بار موفقیت
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'DATA SYNCED SUCCESSFULLY',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    backgroundColor: Color(0xFF00E676),
+                    duration: Duration(seconds: 2),
                   ),
                 );
-              } else {
-                bloc.add(
-                  CreateNodeEvent(
-                    courseId,
-                    parentId,
-                    itemType,
-                    titleController.text,
-                    int.parse(orderController.text),
-                    duration: itemType == 'video'
-                        ? int.parse(durationController.text)
-                        : null,
-                    attachmentUrl: itemType == 'video'
-                        ? attachmentController.text
-                        : null,
-                    vaultId: itemType == 'video' ? selectedVaultId : null,
+
+                // فورس رفرش: به BLoC میگیم دیتای جدید رو از بک‌اند بگیره تا صفحه همون لحظه آپدیت بشه
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  bloc.add(FetchCourseDetails(courseId));
+                });
+              } catch (e) {
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'SYNC FAILED: $e',
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        color: Colors.white,
+                      ),
+                    ),
+                    backgroundColor: Colors.redAccent,
+                    duration: const Duration(seconds: 4),
                   ),
                 );
               }
-              if (context.mounted) context.pop();
             },
             child: const Text(
               'EXECUTE',
-              style: TextStyle(color: Color(0xFF00E676)),
+              style: TextStyle(
+                color: Color(0xFF00E676),
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
