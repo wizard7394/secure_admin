@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:secure_admin/features/courses/presentation/screens/course_details_screen.dart';
 import 'package:secure_admin/features/courses/presentation/screens/courses_screen.dart';
+import 'package:secure_admin/features/devices/presentation/screens/devices_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'main_layout.dart';
@@ -35,6 +36,10 @@ final GoRouter appRouter = GoRouter(
             final courseId = state.pathParameters['id']!;
             return CourseDetailsScreen(courseId: int.parse(courseId));
           },
+        ),
+        GoRoute(
+          path: '/devices',
+          builder: (context, state) => const DevicesScreen(),
         ),
       ],
     ),

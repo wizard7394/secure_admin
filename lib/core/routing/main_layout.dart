@@ -53,10 +53,10 @@ class MainLayout extends StatelessWidget {
                 ),
                 _buildMenuItem(
                   context,
-                  title: 'USERS LOG',
-                  icon: Icons.people_outline,
-                  route: '/users', // مسیر تستی برای آینده
-                  isActive: currentPath.startsWith('/users'),
+                  title: 'SECURITY & DEVICES',
+                  icon: Icons.security_outlined,
+                  route: '/devices',
+                  isActive: currentPath.startsWith('/devices'),
                 ),
               ],
             ),
