@@ -95,17 +95,29 @@ class DevicesView extends StatelessWidget {
       separatorBuilder: (_, _) => const Divider(color: Color(0xFF1A1A1A)),
       itemBuilder: (context, index) {
         final device = devices[index];
+        final loginDate = device['last_login'] != null
+            ? device['last_login'].toString().split('T')[0]
+            : 'Unknown';
+
         return ListTile(
           title: Text(
-            'Hardware ID: ${device['hardware_id']}',
+            'Mobile: ${device['mobile']}',
             style: const TextStyle(
-              color: Colors.white,
-              fontFamily: 'monospace',
+              color: Color(0xFF00E676),
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              letterSpacing: 2.0,
             ),
           ),
-          subtitle: Text(
-            'User ID: ${device['user_id']} | Last Login: ${device['last_login']}',
-            style: const TextStyle(color: Colors.white54),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              'HWID: ${device['short_hash']} | Last Login: $loginDate',
+              style: const TextStyle(
+                color: Colors.white54,
+                fontFamily: 'monospace',
+              ),
+            ),
           ),
           trailing: Icon(
             device['is_blocked'] == true ? Icons.block : Icons.check_circle,
