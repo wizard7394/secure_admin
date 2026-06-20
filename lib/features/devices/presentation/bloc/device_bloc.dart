@@ -26,5 +26,14 @@ class DeviceBloc extends Bloc<DeviceEvent, DeviceState> {
         emit(DeviceError(e.toString()));
       }
     });
+
+    on<ToggleBlockEvent>((event, emit) async {
+      try {
+        await repository.toggleDeviceBlock(event.deviceId, event.isBlocked);
+        add(FetchDevicesEvent());
+      } catch (e) {
+        emit(DeviceError(e.toString()));
+      }
+    });
   }
 }

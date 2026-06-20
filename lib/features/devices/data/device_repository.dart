@@ -32,4 +32,15 @@ class DeviceRepository {
       throw Exception(e.response?.data['detail'] ?? 'Failed to unblock device');
     }
   }
+
+  Future<void> toggleDeviceBlock(int deviceId, bool isBlocked) async {
+    try {
+      await _apiClient.dio.put(
+        '/admin/devices/$deviceId/block',
+        data: {'is_blocked': isBlocked},
+      );
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['detail'] ?? 'Failed to toggle status');
+    }
+  }
 }
