@@ -4,11 +4,13 @@ class FetchDevicesEvent extends DeviceEvent {}
 
 class UnblockDeviceEvent extends DeviceEvent {
   final String hardwareId;
-  UnblockDeviceEvent(this.hardwareId);
+  final String reason;
+  UnblockDeviceEvent(this.hardwareId, this.reason);
 }
 
 class ToggleBlockEvent extends DeviceEvent {
   final int deviceId;
   final bool isBlocked;
-  ToggleBlockEvent(this.deviceId, this.isBlocked);
+  final String reason;
+  ToggleBlockEvent(this.deviceId, this.isBlocked, this.reason);
 }

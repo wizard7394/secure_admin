@@ -18,18 +18,22 @@ class DeviceBloc extends Bloc<DeviceEvent, DeviceState> {
       }
     });
 
-    on<UnblockDeviceEvent>((event, emit) async {
+    on<ToggleBlockEvent>((event, emit) async {
       try {
-        await repository.unblockDevice(event.hardwareId);
+        await repository.toggleDeviceBlock(
+          event.deviceId,
+          event.isBlocked,
+          event.reason,
+        );
         add(FetchDevicesEvent());
       } catch (e) {
         emit(DeviceError(e.toString()));
       }
     });
 
-    on<ToggleBlockEvent>((event, emit) async {
+    on<UnblockDeviceEvent>((event, emit) async {
       try {
-        await repository.toggleDeviceBlock(event.deviceId, event.isBlocked);
+        await repository.unblockDevice(event.hardwareId, event.reason);
         add(FetchDevicesEvent());
       } catch (e) {
         emit(DeviceError(e.toString()));

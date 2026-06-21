@@ -28,7 +28,6 @@ class ApiClient {
           if (e.response?.statusCode == 401) {
             await _storage.delete(key: 'admin_access_token');
             // Logic to redirect to login screen can be triggered here
-            print('DEBUG: Unauthorized access. Token removed.');
           }
           return handler.next(e);
         },

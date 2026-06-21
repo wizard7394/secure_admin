@@ -25,22 +25,30 @@ class DeviceRepository {
     }
   }
 
-  Future<void> unblockDevice(String hardwareId) async {
-    try {
-      await _apiClient.dio.delete('/admin/security/blacklist/$hardwareId');
-    } on DioException catch (e) {
-      throw Exception(e.response?.data['detail'] ?? 'Failed to unblock device');
-    }
-  }
-
-  Future<void> toggleDeviceBlock(int deviceId, bool isBlocked) async {
+  Future<void> toggleDeviceBlock(
+    int deviceId,
+    bool isBlocked,
+    String reason,
+  ) async {
     try {
       await _apiClient.dio.put(
         '/admin/devices/$deviceId/block',
-        data: {'is_blocked': isBlocked},
+        data: {'is_blocked': isBlocked, 'reason': reason}, // <--- دلیل اضافه شد
       );
     } on DioException catch (e) {
       throw Exception(e.response?.data['detail'] ?? 'Failed to toggle status');
+    }
+  }
+
+  Future<void> unblockDevice(String hardwareId, String reason) async {
+    try {
+      // <--- متد به POST تغییر کرد و بادی می‌گیره
+      await _apiClient.dio.post(
+        '/admin/security/blacklist/$hardwareId/unblock',
+        data: {'reason': reason},
+      );
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['detail'] ?? 'Failed to unblock device');
     }
   }
 }

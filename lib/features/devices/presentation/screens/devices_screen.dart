@@ -17,8 +17,105 @@ class DevicesScreen extends StatelessWidget {
   }
 }
 
-class DevicesView extends StatelessWidget {
+class DevicesView extends StatefulWidget {
   const DevicesView({super.key});
+
+  @override
+  State<DevicesView> createState() => _DevicesViewState();
+}
+
+class _DevicesViewState extends State<DevicesView> {
+  void _showReasonDialog(
+    BuildContext context,
+    String actionName,
+    Function(String) onSubmit,
+  ) {
+    final TextEditingController reasonController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF141414),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFF1A1A1A)),
+          ),
+          title: Text(
+            'Confirm $actionName',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Please provide a reason for this action. This will be permanently saved in the system audit log.',
+                style: TextStyle(color: Colors.white54, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: reasonController,
+                style: const TextStyle(color: Colors.white),
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText:
+                      'e.g., Suspicious activity, Capturing detected, HW Reset Paid...',
+                  hintStyle: const TextStyle(color: Colors.white24),
+                  filled: true,
+                  fillColor: const Color(0xFF0A0A0A),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.white12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Color(0xFF00E676)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text(
+                'CANCEL',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    actionName.contains('BLOCK') &&
+                        !actionName.contains('UNBLOCK')
+                    ? Colors.redAccent
+                    : const Color(0xFF00E676),
+                foregroundColor:
+                    actionName.contains('BLOCK') &&
+                        !actionName.contains('UNBLOCK')
+                    ? Colors.white
+                    : Colors.black,
+              ),
+              onPressed: () {
+                final text = reasonController.text.trim();
+                if (text.isNotEmpty) {
+                  Navigator.pop(ctx);
+                  onSubmit(text);
+                }
+              },
+              child: const Text(
+                'CONFIRM',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +163,7 @@ class DevicesView extends StatelessWidget {
                 } else if (state is DeviceLoaded) {
                   return TabBarView(
                     children: [
-                      _buildDevicesList(state.devices),
+                      _buildDevicesList(context, state.devices),
                       _buildBlacklist(context, state.blacklistedDevices),
                     ],
                   );
@@ -80,7 +177,7 @@ class DevicesView extends StatelessWidget {
     );
   }
 
-  Widget _buildDevicesList(List<dynamic> devices) {
+  Widget _buildDevicesList(BuildContext context, List<dynamic> devices) {
     if (devices.isEmpty) {
       return const Center(
         child: Text(
@@ -92,13 +189,14 @@ class DevicesView extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(32),
       itemCount: devices.length,
-      separatorBuilder: (_, __) =>
+      separatorBuilder: (_, _) =>
           const Divider(color: Color(0xFF1A1A1A), height: 32),
       itemBuilder: (context, index) {
         final device = devices[index];
         final loginDate = device['last_login'] != null
             ? device['last_login'].toString().split('T')[0]
             : 'Unknown';
+        final isBlocked = device['is_blocked'] == true;
 
         return Container(
           padding: const EdgeInsets.all(24),
@@ -123,30 +221,31 @@ class DevicesView extends StatelessWidget {
                   ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: device['is_blocked'] == true
+                      backgroundColor: isBlocked
                           ? const Color(0xFF141414)
                           : Colors.redAccent.withValues(alpha: 0.1),
-                      foregroundColor: device['is_blocked'] == true
+                      foregroundColor: isBlocked
                           ? const Color(0xFF00E676)
                           : Colors.redAccent,
                       elevation: 0,
                       side: BorderSide(
-                        color: device['is_blocked'] == true
+                        color: isBlocked
                             ? const Color(0xFF00E676)
                             : Colors.redAccent,
                       ),
                     ),
                     onPressed: () {
-                      // اینجا چون جدول Device هست، آیدی و وضعیت فیلد is_blocked رو میفرستیم
-                      context.read<DeviceBloc>().add(
-                        ToggleBlockEvent(
-                          device['id'],
-                          !(device['is_blocked'] == true),
-                        ),
-                      );
+                      final action = isBlocked
+                          ? 'UNBLOCK DEVICE'
+                          : 'BLOCK DEVICE';
+                      _showReasonDialog(context, action, (reason) {
+                        context.read<DeviceBloc>().add(
+                          ToggleBlockEvent(device['id'], !isBlocked, reason),
+                        );
+                      });
                     },
                     child: Text(
-                      device['is_blocked'] == true ? 'UNBLOCK' : 'BLOCK DEVICE',
+                      isBlocked ? 'UNBLOCK' : 'BLOCK DEVICE',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
@@ -192,7 +291,7 @@ class DevicesView extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(32),
       itemCount: blacklists.length,
-      separatorBuilder: (_, __) => const Divider(color: Color(0xFF1A1A1A)),
+      separatorBuilder: (_, _) => const Divider(color: Color(0xFF1A1A1A)),
       itemBuilder: (context, index) {
         final item = blacklists[index];
         return ListTile(
@@ -203,9 +302,12 @@ class DevicesView extends StatelessWidget {
               fontFamily: 'monospace',
             ),
           ),
-          subtitle: Text(
-            'Reason: ${item['reason']}',
-            style: const TextStyle(color: Colors.white54),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              'Reason: ${item['reason']}',
+              style: const TextStyle(color: Colors.white70),
+            ),
           ),
           trailing: ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -215,9 +317,11 @@ class DevicesView extends StatelessWidget {
               side: const BorderSide(color: Color(0xFF00E676)),
             ),
             onPressed: () {
-              context.read<DeviceBloc>().add(
-                UnblockDeviceEvent(item['hardware_id']),
-              );
+              _showReasonDialog(context, 'UNBLOCK HARDWARE', (reason) {
+                context.read<DeviceBloc>().add(
+                  UnblockDeviceEvent(item['hardware_id'], reason),
+                );
+              });
             },
             child: const Text(
               'UNBLOCK',
