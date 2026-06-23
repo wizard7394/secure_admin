@@ -42,7 +42,7 @@ class UserDetailsScreen extends StatelessWidget {
           children: [
             _buildProfileTab(),
             _buildDevicesTab(context),
-            _buildHeatmapTab(),
+            _buildHeatmapTab(context),
             _buildTransactionsTab(context),
             _buildLogsTab(context),
           ],
@@ -196,7 +196,6 @@ class UserDetailsScreen extends StatelessWidget {
     );
   }
 
-  // هدر ساز اختصاصی برای حفظ استایل
   Widget _buildHeaderContainer({required List<Widget> children}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -369,11 +368,348 @@ class UserDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeatmapTab() {
-    return const Center(
-      child: Text(
-        'TELEMETRY & HEATMAP DATA WILL BE RENDERED HERE',
-        style: TextStyle(color: Colors.white54, letterSpacing: 2),
+  Widget _buildHeatmapTab(BuildContext context) {
+    const headerStyle = TextStyle(
+      color: Colors.white54,
+      fontWeight: FontWeight.bold,
+      letterSpacing: 1.5,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        children: [
+          _buildHeaderContainer(
+            children: [
+              const SizedBox(width: 50, child: Text('ID', style: headerStyle)),
+              const Expanded(
+                flex: 3,
+                child: Text('COURSE NAME', style: headerStyle),
+              ),
+              const Expanded(
+                flex: 2,
+                child: Text('TOTAL PROGRESS', style: headerStyle),
+              ),
+              const SizedBox(
+                width: 150,
+                child: Text('TOTAL VIDEOS', style: headerStyle),
+              ),
+              const SizedBox(
+                width: 150,
+                child: Text('STATUS', style: headerStyle),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                _buildHeatmapCourseRow(
+                  context,
+                  '1',
+                  'Python Security Masterclass',
+                  0.65,
+                  '300',
+                  'IN PROGRESS',
+                ),
+                _buildHeatmapCourseRow(
+                  context,
+                  '2',
+                  'Linux LPIC-1 Administration',
+                  1.0,
+                  '120',
+                  'COMPLETED',
+                ),
+                _buildHeatmapCourseRow(
+                  context,
+                  '3',
+                  'Flutter Advanced Architecture',
+                  0.0,
+                  '85',
+                  'UNWATCHED',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeatmapCourseRow(
+    BuildContext context,
+    String id,
+    String courseName,
+    double progress,
+    String totalVideos,
+    String status,
+  ) {
+    final bool isCompleted = progress == 1.0;
+    final bool isUnwatched = progress == 0.0;
+    final Color statusColor = isCompleted
+        ? const Color(0xFF00E676)
+        : (isUnwatched ? Colors.white24 : Colors.orangeAccent);
+
+    return InkWell(
+      onTap: () => _showMatrixHeatmapDialog(context, courseName, totalVideos),
+      hoverColor: const Color(0xFF00E676).withValues(alpha: 0.05),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF141414),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 50,
+              child: Text(
+                id,
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 3,
+              child: Text(
+                courseName,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 32),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor: Colors.white.withValues(alpha: 0.05),
+                        color: statusColor,
+                        minHeight: 4,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 45,
+                      child: Text(
+                        '${(progress * 100).toInt()}%',
+                        style: TextStyle(
+                          color: statusColor,
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 150,
+              child: Text(
+                '$totalVideos Videos',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 150,
+              child: Text(
+                status,
+                style: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMatrixHeatmapDialog(
+    BuildContext context,
+    String courseName,
+    String totalVideos,
+  ) {
+    final int count = int.parse(totalVideos);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0D0D0D),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'VISUAL HEATMAP MATRIX: $courseName',
+              style: const TextStyle(
+                color: Color(0xFF00E676),
+                fontSize: 14,
+                letterSpacing: 1.5,
+              ),
+            ),
+            Text(
+              '$totalVideos Videos Total',
+              style: const TextStyle(
+                color: Colors.white38,
+                fontSize: 12,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 750,
+          height: 400,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _buildLegendDot(const Color(0xFF00E676), 'Completed'),
+                  const SizedBox(width: 16),
+                  _buildLegendDot(
+                    Colors.orangeAccent,
+                    'Half Watched (Drop-off)',
+                  ),
+                  const SizedBox(width: 16),
+                  _buildLegendDot(Colors.white10, 'Unwatched'),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: List.generate(count, (index) {
+                      Color dotColor = Colors.white10;
+                      double mockProg = 0.0;
+
+                      if (index < count * 0.4) {
+                        dotColor = const Color(0xFF00E676);
+                        mockProg = 1.0;
+                      } else if (index < count * 0.65) {
+                        dotColor = Colors.orangeAccent;
+                        mockProg = 0.45;
+                      }
+
+                      return Tooltip(
+                        message:
+                            'Video #${index + 1} - Progress: ${(mockProg * 100).toInt()}%',
+                        preferBelow: false,
+                        child: InkWell(
+                          onTap: () => _showTelemetryDetailsDialog(
+                            context,
+                            'Video #${index + 1}',
+                            mockProg,
+                          ),
+                          child: Container(
+                            width: 16,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: dotColor,
+                              borderRadius: BorderRadius.circular(3),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.02),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'CLOSE PANEL',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLegendDot(Color color, String label) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white54, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  void _showTelemetryDetailsDialog(
+    BuildContext context,
+    String videoTitle,
+    double progress,
+  ) {
+    final status = progress == 1.0
+        ? 'COMPLETED'
+        : (progress == 0.0 ? 'UNWATCHED' : 'IN PROGRESS');
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF141414),
+        title: Text(
+          'SPECIFIC TELEMETRY: $videoTitle',
+          style: const TextStyle(
+            color: Color(0xFF00E676),
+            fontSize: 14,
+            letterSpacing: 2,
+          ),
+        ),
+        content: SizedBox(
+          width: 450,
+          child: Text(
+            "Overall Status: $status\nTotal Playtime: 24m 12s\nAverage Speed: 1.50x\nSeek Jumps (Skipped): 3 times\nPause Count: 1 time\nDrop-off Point: ${progress == 1.0 ? 'End of Video' : '11m 05s'}\nLast IP Address: 94.101.182.3\nTelemetry Result: Verified Genuine View",
+            style: const TextStyle(
+              color: Colors.white,
+              fontFamily: 'monospace',
+              height: 1.8,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('BACK', style: TextStyle(color: Colors.white54)),
+          ),
+        ],
       ),
     );
   }
