@@ -1,35 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class CoursesScreen extends StatelessWidget {
-  const CoursesScreen({super.key});
+class UsersScreen extends StatelessWidget {
+  const UsersScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final mockCourses = [
+    final mockUsers = [
       {
         'id': '1',
-        'name': 'Python Security Masterclass',
-        'total': '854',
-        'active': '12',
+        'number': '09367013231',
+        'name': 'AmirHosein Moallemi',
+        'email': 'admin@nabegheha.com',
+        'active': true,
       },
       {
         'id': '2',
-        'name': 'Linux LPIC-1 Administration',
-        'total': '1,205',
-        'active': '34',
+        'number': '09123456789',
+        'name': 'John Doe',
+        'email': 'john@example.com',
+        'active': true,
       },
       {
         'id': '3',
-        'name': 'Flutter Advanced Architecture',
-        'total': '632',
-        'active': '8',
+        'number': '09198765432',
+        'name': 'Jane Smith',
+        'email': 'jane.smith@domain.com',
+        'active': false,
       },
       {
         'id': '4',
-        'name': 'Network Penetration Testing',
-        'total': '420',
-        'active': '0',
+        'number': '09021112233',
+        'name': 'Alice Hacker',
+        'email': 'alice@crypto.org',
+        'active': true,
       },
     ];
 
@@ -39,7 +43,7 @@ class CoursesScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF141414),
         elevation: 0,
         title: const Text(
-          'COURSE MANAGEMENT',
+          'USER MANAGEMENT',
           style: TextStyle(
             color: Color(0xFF00E676),
             letterSpacing: 4,
@@ -85,9 +89,20 @@ class CoursesScreen extends StatelessWidget {
                     ),
                   ),
                   Expanded(
+                    flex: 2,
+                    child: Text(
+                      'NUMBER',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ),
+                  Expanded(
                     flex: 3,
                     child: Text(
-                      'COURSE NAME',
+                      'FULL NAME',
                       style: TextStyle(
                         color: Colors.white54,
                         fontWeight: FontWeight.bold,
@@ -96,8 +111,9 @@ class CoursesScreen extends StatelessWidget {
                     ),
                   ),
                   Expanded(
+                    flex: 3,
                     child: Text(
-                      'TOTAL USERS',
+                      'EMAIL',
                       style: TextStyle(
                         color: Colors.white54,
                         fontWeight: FontWeight.bold,
@@ -105,9 +121,10 @@ class CoursesScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Expanded(
+                  SizedBox(
+                    width: 100,
                     child: Text(
-                      'ACTIVE USERS',
+                      'STATUS',
                       style: TextStyle(
                         color: Colors.white54,
                         fontWeight: FontWeight.bold,
@@ -123,13 +140,13 @@ class CoursesScreen extends StatelessWidget {
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: mockCourses.length,
+              itemCount: mockUsers.length,
               itemBuilder: (context, index) {
-                final course = mockCourses[index];
-                final isActive = course['active'] != '0';
+                final user = mockUsers[index];
+                final isActive = user['active'] as bool;
 
                 return InkWell(
-                  onTap: () => context.go('/courses/${course['id']}'),
+                  onTap: () => context.go('/users/${user['id']}'),
                   hoverColor: const Color(0xFF00E676).withValues(alpha: 0.05),
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 4),
@@ -149,7 +166,7 @@ class CoursesScreen extends StatelessWidget {
                         SizedBox(
                           width: 50,
                           child: Text(
-                            course['id']!,
+                            user['id'].toString(),
                             style: const TextStyle(
                               color: Colors.white54,
                               fontFamily: 'monospace',
@@ -158,19 +175,9 @@ class CoursesScreen extends StatelessWidget {
                           ),
                         ),
                         Expanded(
-                          flex: 3,
+                          flex: 2,
                           child: Text(
-                            course['name']!,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            course['total']!,
+                            user['number'].toString(),
                             style: const TextStyle(
                               color: Colors.white,
                               fontFamily: 'monospace',
@@ -179,6 +186,28 @@ class CoursesScreen extends StatelessWidget {
                           ),
                         ),
                         Expanded(
+                          flex: 3,
+                          child: Text(
+                            user['name'].toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            user['email'].toString(),
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 100,
                           child: Row(
                             children: [
                               Icon(
@@ -186,17 +215,17 @@ class CoursesScreen extends StatelessWidget {
                                 size: 10,
                                 color: isActive
                                     ? const Color(0xFF00E676)
-                                    : Colors.white24,
+                                    : Colors.redAccent,
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                course['active']!,
+                                isActive ? 'ACTIVE' : 'BANNED',
                                 style: TextStyle(
                                   color: isActive
                                       ? const Color(0xFF00E676)
-                                      : Colors.white54,
+                                      : Colors.redAccent,
                                   fontFamily: 'monospace',
-                                  fontSize: 15,
+                                  fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),

@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:secure_admin/features/courses/presentation/screens/course_details_screen.dart';
-import 'package:secure_admin/features/courses/presentation/screens/courses_screen.dart';
-import 'package:secure_admin/features/devices/presentation/screens/devices_screen.dart';
-import '../../features/auth/presentation/screens/login_screen.dart';
-import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'main_layout.dart';
+import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
+import '../../features/courses/presentation/screens/courses_screen.dart';
+import '../../features/courses/presentation/screens/course_details_screen.dart';
+import '../../features/users/presentation/screens/users_screen.dart';
+import '../../features/users/presentation/screens/user_details_screen.dart';
 
-final rootNavigatorKey = GlobalKey<NavigatorState>();
-final shellNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> _shellNavigatorKey =
+    GlobalKey<NavigatorState>();
 
 final GoRouter appRouter = GoRouter(
-  navigatorKey: rootNavigatorKey,
-  initialLocation: '/login',
+  navigatorKey: _rootNavigatorKey,
+  initialLocation: '/dashboard',
   routes: [
-    GoRoute(path: '/', redirect: (context, state) => '/login'),
-    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     ShellRoute(
-      navigatorKey: shellNavigatorKey,
+      navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) {
         return MainLayout(child: child);
       },
@@ -29,17 +28,40 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: '/courses',
           builder: (context, state) => const CoursesScreen(),
+          routes: [
+            GoRoute(
+              path: ':id',
+              builder: (context, state) {
+                final courseId = state.pathParameters['id']!;
+                return CourseDetailsScreen(courseId: courseId);
+              },
+            ),
+          ],
         ),
         GoRoute(
-          path: '/courses/:id',
-          builder: (context, state) {
-            final courseId = state.pathParameters['id']!;
-            return CourseDetailsScreen(courseId: int.parse(courseId));
-          },
+          path: '/users',
+          builder: (context, state) => const UsersScreen(),
+          routes: [
+            GoRoute(
+              path: ':id',
+              builder: (context, state) {
+                final userId = state.pathParameters['id']!;
+                return UserDetailsScreen(userId: userId);
+              },
+            ),
+          ],
         ),
         GoRoute(
-          path: '/devices',
-          builder: (context, state) => const DevicesScreen(),
+          path: '/notifications',
+          builder: (context, state) => const Scaffold(
+            backgroundColor: Color(0xFF0A0A0A),
+            body: Center(
+              child: Text(
+                'NOTIFICATION CENTER COMING SOON',
+                style: TextStyle(color: Colors.white54, letterSpacing: 2),
+              ),
+            ),
+          ),
         ),
       ],
     ),

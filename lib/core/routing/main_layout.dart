@@ -15,7 +15,7 @@ class MainLayout extends StatelessWidget {
       body: Row(
         children: [
           Container(
-            width: 250,
+            width: 260,
             color: const Color(0xFF141414),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -23,7 +23,7 @@ class MainLayout extends StatelessWidget {
                 const Padding(
                   padding: EdgeInsets.all(32.0),
                   child: Text(
-                    'DRM\nSECURE SYSTEM',
+                    'DRM\nCOMMAND CENTER',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -53,10 +53,17 @@ class MainLayout extends StatelessWidget {
                 ),
                 _buildMenuItem(
                   context,
-                  title: 'SECURITY & DEVICES',
-                  icon: Icons.security_outlined,
-                  route: '/devices',
-                  isActive: currentPath.startsWith('/devices'),
+                  title: 'USERS',
+                  icon: Icons.people_outline,
+                  route: '/users',
+                  isActive: currentPath.startsWith('/users'),
+                ),
+                _buildMenuItem(
+                  context,
+                  title: 'NOTIFICATION CENTER',
+                  icon: Icons.notifications_active_outlined,
+                  route: '/notifications',
+                  isActive: currentPath.startsWith('/notifications'),
                 ),
               ],
             ),
@@ -103,7 +110,7 @@ class MainLayout extends StatelessWidget {
               title,
               style: TextStyle(
                 color: color,
-                fontSize: 14,
+                fontSize: 13,
                 letterSpacing: 1.5,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
               ),
