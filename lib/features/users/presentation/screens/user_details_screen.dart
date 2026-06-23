@@ -41,10 +41,10 @@ class UserDetailsScreen extends StatelessWidget {
         body: TabBarView(
           children: [
             _buildProfileTab(),
-            _buildDevicesTab(),
+            _buildDevicesTab(context),
             _buildHeatmapTab(),
-            _buildTransactionsTab(),
-            _buildLogsTab(),
+            _buildTransactionsTab(context),
+            _buildLogsTab(context),
           ],
         ),
       ),
@@ -79,7 +79,62 @@ class UserDetailsScreen extends StatelessWidget {
             children: [
               _buildTextField('EMAIL ADDRESS', 'admin@nabegheha.com'),
               const SizedBox(width: 24),
-              _buildTextField('ACCOUNT STATUS', 'ACTIVE', isReadOnly: true),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'ACCOUNT STATUS',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<String>(
+                      value: 'ENABLE',
+                      dropdownColor: const Color(0xFF1A1A1A),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.bold,
+                      ),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: const Color(0xFF141414),
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        focusedBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF00E676)),
+                        ),
+                      ),
+                      items: ['ENABLE', 'DISABLE'].map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(
+                            value,
+                            style: TextStyle(
+                              color: value == 'ENABLE'
+                                  ? const Color(0xFF00E676)
+                                  : Colors.redAccent,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (newValue) {},
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 32),
@@ -101,11 +156,7 @@ class UserDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(
-    String label,
-    String value, {
-    bool isReadOnly = false,
-  }) {
+  Widget _buildTextField(String label, String value) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,7 +172,6 @@ class UserDetailsScreen extends StatelessWidget {
           const SizedBox(height: 8),
           TextFormField(
             initialValue: value,
-            readOnly: isReadOnly,
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               filled: true,
@@ -146,77 +196,173 @@ class UserDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDevicesTab() {
-    return ListView(
+  // هدر ساز اختصاصی برای حفظ استایل
+  Widget _buildHeaderContainer({required List<Widget> children}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141414),
+        border: Border(
+          bottom: BorderSide(
+            color: const Color(0xFF00E676).withValues(alpha: 0.5),
+            width: 2,
+          ),
+        ),
+      ),
+      child: Row(children: children),
+    );
+  }
+
+  Widget _buildDevicesTab(BuildContext context) {
+    const headerStyle = TextStyle(
+      color: Colors.white54,
+      fontWeight: FontWeight.bold,
+      letterSpacing: 1.5,
+    );
+
+    return Padding(
       padding: const EdgeInsets.all(32),
-      children: [
-        _buildDeviceRow(
-          '1',
-          'ROG STRIX Z790-F GAMING WIFI',
-          'NO',
-          'Active verified slot',
-        ),
-        _buildDeviceRow(
-          '2',
-          'ASUSTeK COMPUTER INC.',
-          'YES',
-          'Auto-blocked: Motherboard changed',
-        ),
-      ],
+      child: Column(
+        children: [
+          _buildHeaderContainer(
+            children: [
+              const SizedBox(width: 50, child: Text('ID', style: headerStyle)),
+              const Expanded(
+                flex: 2,
+                child: Text('DEVICE NAME', style: headerStyle),
+              ),
+              const SizedBox(
+                width: 150,
+                child: Text('STATUS', style: headerStyle),
+              ),
+              const Expanded(
+                flex: 2,
+                child: Text('REASON', style: headerStyle),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                _buildDeviceRow(
+                  context,
+                  '1',
+                  'ROG STRIX Z790-F GAMING WIFI',
+                  'ENABLE',
+                  'Active verified slot',
+                  true,
+                ),
+                _buildDeviceRow(
+                  context,
+                  '2',
+                  'ASUSTeK COMPUTER INC.',
+                  'DISABLE',
+                  'Auto-blocked: Motherboard changed',
+                  false,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildDeviceRow(
+    BuildContext context,
     String id,
     String name,
-    String isBlocked,
+    String status,
     String reason,
+    bool isActive,
   ) {
-    final blocked = isBlocked == 'YES';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+    return InkWell(
+      onTap: () => _showDeviceDetailsDialog(context, name),
+      hoverColor: const Color(0xFF00E676).withValues(alpha: 0.05),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF141414),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 50,
+              child: Text(
+                id,
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                name,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 150,
+              child: Text(
+                status,
+                style: TextStyle(
+                  color: isActive ? const Color(0xFF00E676) : Colors.redAccent,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Text(
+                reason,
+                style: const TextStyle(color: Colors.white54),
+              ),
+            ),
+          ],
+        ),
       ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 50,
-            child: Text(
-              id,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontFamily: 'monospace',
-              ),
+    );
+  }
+
+  void _showDeviceDetailsDialog(BuildContext context, String deviceName) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF141414),
+        title: Text(
+          'HARDWARE SPECIFICATIONS: $deviceName',
+          style: const TextStyle(
+            color: Color(0xFF00E676),
+            fontSize: 14,
+            letterSpacing: 2,
+          ),
+        ),
+        content: const SizedBox(
+          width: 500,
+          child: Text(
+            "CPU: Intel Core i7-13700K 16-Core\nGPU: NVIDIA GeForce RTX 4090 24GB\nRAM: 64GB DDR5 6000MHz\nOS: Windows 11 Pro Build 22621\nMotherboard UUID: 4C4C4544-004B-4A10-8032-B8C04F505332\nCapture Hardware: Clean (No Capture Cards)",
+            style: TextStyle(
+              color: Colors.white,
+              fontFamily: 'monospace',
+              height: 1.8,
             ),
           ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              name,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 150,
-            child: Text(
-              blocked ? 'BLOCKED' : 'ACTIVE',
-              style: TextStyle(
-                color: blocked ? Colors.redAccent : const Color(0xFF00E676),
-                fontWeight: FontWeight.bold,
-                fontFamily: 'monospace',
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(reason, style: const TextStyle(color: Colors.white54)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CLOSE', style: TextStyle(color: Colors.white54)),
           ),
         ],
       ),
@@ -232,71 +378,61 @@ class UserDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTransactionsTab() {
-    return ListView(
-      padding: const EdgeInsets.all(32),
-      children: [
-        _buildTransactionRow(
-          'TX-9921',
-          '2026-06-23',
-          'Hardware Reset Fee',
-          '+50,000 IRT',
-        ),
-        _buildTransactionRow(
-          'TX-8840',
-          '2026-01-15',
-          'Python Security Package',
-          '+1,200,000 IRT',
-        ),
-      ],
+  Widget _buildTransactionsTab(BuildContext context) {
+    const headerStyle = TextStyle(
+      color: Colors.white54,
+      fontWeight: FontWeight.bold,
+      letterSpacing: 1.5,
     );
-  }
 
-  Widget _buildTransactionRow(
-    String id,
-    String date,
-    String desc,
-    String amount,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-      ),
-      child: Row(
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
         children: [
-          SizedBox(
-            width: 150,
-            child: Text(
-              id,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontFamily: 'monospace',
+          _buildHeaderContainer(
+            children: [
+              const SizedBox(width: 100, child: Text('ID', style: headerStyle)),
+              const SizedBox(
+                width: 150,
+                child: Text('DATE', style: headerStyle),
               ),
-            ),
-          ),
-          SizedBox(
-            width: 150,
-            child: Text(
-              date,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontFamily: 'monospace',
+              const Expanded(child: Text('DESCRIPTION', style: headerStyle)),
+              const SizedBox(
+                width: 150,
+                child: Text('AMOUNT', style: headerStyle),
               ),
-            ),
+            ],
           ),
+          const SizedBox(height: 16),
           Expanded(
-            child: Text(desc, style: const TextStyle(color: Colors.white)),
-          ),
-          Text(
-            amount,
-            style: const TextStyle(
-              color: Color(0xFF00E676),
-              fontWeight: FontWeight.bold,
-              fontFamily: 'monospace',
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                _buildTransactionRow(
+                  context,
+                  'TX-9921',
+                  '2026-06-23',
+                  'Hardware Reset Fee',
+                  '+50,000 IRT',
+                  true,
+                ),
+                _buildTransactionRow(
+                  context,
+                  'TX-8840',
+                  '2026-01-15',
+                  'Python Security Package',
+                  '+1,200,000 IRT',
+                  true,
+                ),
+                _buildTransactionRow(
+                  context,
+                  'TX-8841',
+                  '2026-01-16',
+                  'Linux LPIC-1 (Failed)',
+                  '0 IRT',
+                  false,
+                ),
+              ],
             ),
           ),
         ],
@@ -304,88 +440,277 @@ class UserDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLogsTab() {
-    return ListView(
-      padding: const EdgeInsets.all(32),
-      children: [
-        const Text(
-          'PLAYER CRASH LOGS',
-          style: TextStyle(
-            color: Colors.redAccent,
-            fontSize: 14,
-            letterSpacing: 2,
-            fontWeight: FontWeight.bold,
-          ),
+  Widget _buildTransactionRow(
+    BuildContext context,
+    String id,
+    String date,
+    String desc,
+    String amount,
+    bool isSuccess,
+  ) {
+    return InkWell(
+      onTap: () => _showTransactionDetailsDialog(context, id),
+      hoverColor: const Color(0xFF00E676).withValues(alpha: 0.05),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF141414),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
-        const SizedBox(height: 16),
-        _buildLogRow(
-          '1',
-          '2026-06-23 10:15',
-          'Decryption failed. Invalid IV vector in memory block 0x4A.',
+        child: Row(
+          children: [
+            SizedBox(
+              width: 100,
+              child: Text(
+                id.replaceAll('TX-', ''),
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 150,
+              child: Text(
+                date,
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+            Expanded(
+              child: Text(desc, style: const TextStyle(color: Colors.white)),
+            ),
+            SizedBox(
+              width: 150,
+              child: Text(
+                amount,
+                style: TextStyle(
+                  color: isSuccess ? const Color(0xFF00E676) : Colors.redAccent,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+          ],
         ),
-        _buildLogRow(
-          '2',
-          '2026-06-22 18:40',
-          'MediaKit renderer crashed. Unsupported GPU driver detected.',
-        ),
-        const SizedBox(height: 48),
-        const Text(
-          'SYSTEM EVENT LOGS',
-          style: TextStyle(
-            color: Color(0xFF00E676),
-            fontSize: 14,
-            letterSpacing: 2,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildLogRow(
-          '3',
-          '2026-06-23 09:00',
-          'Payment received via WooCommerce. Slot automatically reset.',
-        ),
-        _buildLogRow(
-          '4',
-          '2026-06-20 12:00',
-          'System auto-blocked due to unauthorized login attempt from new hardware.',
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _buildLogRow(String id, String date, String message) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+  void _showTransactionDetailsDialog(BuildContext context, String txId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF141414),
+        title: Text(
+          'TRANSACTION DETAILS: $txId',
+          style: const TextStyle(
+            color: Color(0xFF00E676),
+            fontSize: 14,
+            letterSpacing: 2,
+          ),
+        ),
+        content: const SizedBox(
+          width: 500,
+          child: Text(
+            "Gateway: ZarinPal\nRef ID: 0000000000000000000000000000458921\nCard PAN: 5022-29**-****-1234\nTimestamp: 2026-06-23 14:35:22 UTC\nStatus: SUCCESS - Verified by callback",
+            style: TextStyle(
+              color: Colors.white,
+              fontFamily: 'monospace',
+              height: 1.8,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CLOSE', style: TextStyle(color: Colors.white54)),
+          ),
+        ],
       ),
-      child: Row(
+    );
+  }
+
+  Widget _buildLogsTab(BuildContext context) {
+    const headerStyle = TextStyle(
+      color: Colors.white54,
+      fontWeight: FontWeight.bold,
+      letterSpacing: 1.5,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
         children: [
-          SizedBox(
-            width: 50,
-            child: Text(
-              id,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontFamily: 'monospace',
+          _buildHeaderContainer(
+            children: [
+              const SizedBox(width: 50, child: Text('ID', style: headerStyle)),
+              const SizedBox(
+                width: 180,
+                child: Text('DATE', style: headerStyle),
               ),
-            ),
+              const Expanded(child: Text('MESSAGE', style: headerStyle)),
+            ],
           ),
-          SizedBox(
-            width: 200,
-            child: Text(
-              date,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontFamily: 'monospace',
-              ),
-            ),
-          ),
+          const SizedBox(height: 16),
           Expanded(
-            child: Text(message, style: const TextStyle(color: Colors.white)),
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                const Text(
+                  'PLAYER CRASH LOGS',
+                  style: TextStyle(
+                    color: Colors.redAccent,
+                    fontSize: 14,
+                    letterSpacing: 2,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildLogRow(
+                  context,
+                  '1',
+                  '2026-06-23 10:15',
+                  'Decryption failed. Invalid IV vector in memory block 0x4A.',
+                  true,
+                ),
+                _buildLogRow(
+                  context,
+                  '2',
+                  '2026-06-22 18:40',
+                  'MediaKit renderer crashed. Unsupported GPU driver detected.',
+                  true,
+                ),
+                const SizedBox(height: 48),
+                const Text(
+                  'SYSTEM EVENT LOGS',
+                  style: TextStyle(
+                    color: Color(0xFF00E676),
+                    fontSize: 14,
+                    letterSpacing: 2,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildLogRow(
+                  context,
+                  '3',
+                  '2026-06-23 09:00',
+                  'Payment received via WooCommerce. Slot automatically reset.',
+                  false,
+                ),
+                _buildLogRow(
+                  context,
+                  '4',
+                  '2026-06-20 12:00',
+                  'System auto-blocked due to unauthorized login attempt from new hardware.',
+                  false,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogRow(
+    BuildContext context,
+    String id,
+    String date,
+    String message,
+    bool isCrash,
+  ) {
+    return InkWell(
+      onTap: () => _showLogDetailsDialog(context, id, message, isCrash),
+      hoverColor: const Color(0xFF00E676).withValues(alpha: 0.05),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF141414),
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 50,
+              child: Text(
+                id,
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 180,
+              child: Text(
+                date,
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: isCrash
+                      ? Colors.redAccent.withValues(alpha: 0.8)
+                      : Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLogDetailsDialog(
+    BuildContext context,
+    String logId,
+    String shortMsg,
+    bool isCrash,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF141414),
+        title: Text(
+          'LOG TRACE ID: $logId',
+          style: TextStyle(
+            color: isCrash ? Colors.redAccent : const Color(0xFF00E676),
+            fontSize: 14,
+            letterSpacing: 2,
+          ),
+        ),
+        content: SizedBox(
+          width: 700,
+          child: SingleChildScrollView(
+            child: Text(
+              isCrash
+                  ? "FATAL ERROR OCCURRED:\n$shortMsg\n\n--- STACK TRACE ---\n[0x00A1F] libcrypto.so: EVP_DecryptUpdate + 0x42\n[0x00B22] secure_player_core: _decrypt_chunk + 0x18A\n[0x00C33] media_kit_video: render_frame + 0x9F\n\nDump saved to: /var/logs/crash_$logId.dmp"
+                  : "EVENT TRIGGERED:\n$shortMsg\n\n--- METADATA ---\nAction: AUTO_BLOCK_MISMATCH\nTrigger: Webhook / Web API\nPayload Hash: 8f4e2d1a...\nStatus: Committed to DB successfully",
+              style: const TextStyle(
+                color: Colors.white54,
+                fontFamily: 'monospace',
+                height: 1.5,
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CLOSE', style: TextStyle(color: Colors.white54)),
           ),
         ],
       ),
