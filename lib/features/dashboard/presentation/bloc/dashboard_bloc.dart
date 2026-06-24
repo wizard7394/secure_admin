@@ -7,6 +7,7 @@ import '../../data/dashboard_repository.dart';
 class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   final DashboardRepository repository;
   Timer? _liveTimer;
+  bool _isFetching = false; // قفل جلوگیری از رگبار ریکوئست
 
   DashboardBloc({required this.repository}) : super(DashboardInitial()) {
     on<FetchDashboardStats>(_onFetchStats);
@@ -18,14 +19,15 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     FetchDashboardStats event,
     Emitter<DashboardState> emit,
   ) async {
+    // اگر ریکوئست قبلی هنوز تو راهه یا تموم نشده، ریکوئست جدید رو دراپ کن
+    if (_isFetching) return;
+    _isFetching = true;
+
     try {
       if (state is! DashboardLoaded) {
         emit(DashboardLoading());
       }
-
       final stats = await repository.getDashboardStats();
-
-      // با اتچ کردن میلی‌ثانیه، Bloc مجبور میشه صفحه رو آپدیت کنه
       emit(
         DashboardLoaded(
           stats,
@@ -36,14 +38,20 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       if (state is! DashboardLoaded) {
         emit(DashboardError(e.toString()));
       }
+    } finally {
+      // قفل رو باز کن تا تایمر بعدی بتونه کار کنه
+      _isFetching = false;
     }
   }
 
   void _onStartLiveUpdate(StartLiveUpdate event, Emitter<DashboardState> emit) {
+    // اگر از قبل یک تایمر زنده وجود داره، به هیچ وجه تایمر دوم نساز!
+    if (_liveTimer != null && _liveTimer!.isActive) return;
+
     add(FetchDashboardStats());
 
-    _liveTimer?.cancel();
-    _liveTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+    // تایمر زنده و استاندارد ۳ ثانیه‌ای برای مانیتورینگ
+    _liveTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       add(FetchDashboardStats());
     });
   }
