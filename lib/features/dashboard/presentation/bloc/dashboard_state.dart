@@ -1,11 +1,4 @@
-import 'package:equatable/equatable.dart';
-
-abstract class DashboardState extends Equatable {
-  const DashboardState();
-
-  @override
-  List<Object> get props => [];
-}
+abstract class DashboardState {}
 
 class DashboardInitial extends DashboardState {}
 
@@ -13,18 +6,13 @@ class DashboardLoading extends DashboardState {}
 
 class DashboardLoaded extends DashboardState {
   final Map<String, dynamic> stats;
+  final int timestamp;
 
-  const DashboardLoaded(this.stats);
-
-  @override
-  List<Object> get props => [stats];
+  DashboardLoaded(this.stats, {this.timestamp = 0});
 }
 
 class DashboardError extends DashboardState {
   final String message;
 
-  const DashboardError(this.message);
-
-  @override
-  List<Object> get props => [message];
+  DashboardError(this.message);
 }

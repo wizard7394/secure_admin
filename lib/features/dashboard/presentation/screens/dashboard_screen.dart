@@ -1,7 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/utils/service_locator.dart';
+import '../bloc/dashboard_bloc.dart';
+import '../bloc/dashboard_event.dart';
+import '../bloc/dashboard_state.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => sl<DashboardBloc>()..add(StartLiveUpdate()),
+      child: const _DashboardView(),
+    );
+  }
+}
+
+class _DashboardView extends StatelessWidget {
+  const _DashboardView();
 
   @override
   Widget build(BuildContext context) {
@@ -27,81 +44,117 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'SERVER RESOURCES',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                letterSpacing: 2,
-                fontWeight: FontWeight.bold,
+      body: BlocBuilder<DashboardBloc, DashboardState>(
+        builder: (context, state) {
+          if (state is DashboardLoading || state is DashboardInitial) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF00E676)),
+            );
+          } else if (state is DashboardError) {
+            return Center(
+              child: Text(
+                'SYSTEM FAULT: ${state.message}',
+                style: const TextStyle(
+                  color: Colors.redAccent,
+                  fontFamily: 'monospace',
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                _buildSimpleCard('CPU USAGE', '45%', Icons.memory),
-                const SizedBox(width: 24),
-                _buildSimpleCard(
-                  'RAM USAGE',
-                  '16GB / 24GB',
-                  Icons.developer_board,
-                ),
-                const SizedBox(width: 24),
-                _buildSimpleCard('STORAGE', '820GB / 1TB', Icons.storage),
-                const SizedBox(width: 24),
-                _buildSimpleCard('SYSTEM OS', 'Ubuntu 24.04', Icons.terminal),
-              ],
-            ),
-            const SizedBox(height: 48),
-            const Text(
-              'PLATFORM METRICS',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                letterSpacing: 2,
-                fontWeight: FontWeight.bold,
+            );
+          } else if (state is DashboardLoaded) {
+            final server = state.stats['server'] ?? {};
+            final metrics = state.stats['metrics'] ?? {};
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'SERVER RESOURCES',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      letterSpacing: 2,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      _buildSimpleCard(
+                        'CPU USAGE',
+                        server['cpu_usage'] ?? '0%',
+                        Icons.memory,
+                      ),
+                      const SizedBox(width: 24),
+                      _buildSimpleCard(
+                        'RAM USAGE',
+                        server['ram_usage'] ?? '0GB',
+                        Icons.developer_board,
+                      ),
+                      const SizedBox(width: 24),
+                      _buildSimpleCard(
+                        'STORAGE',
+                        server['storage'] ?? '0GB',
+                        Icons.storage,
+                      ),
+                      const SizedBox(width: 24),
+                      _buildSimpleCard(
+                        'SYSTEM OS',
+                        server['os'] ?? 'Unknown',
+                        Icons.terminal,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 48),
+                  const Text(
+                    'PLATFORM METRICS',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      letterSpacing: 2,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      _buildSimpleCard(
+                        'TOTAL USERS',
+                        metrics['total_users'] ?? '0',
+                        Icons.people_outline,
+                        highlight: true,
+                      ),
+                      const SizedBox(width: 24),
+                      _buildSimpleCard(
+                        'ONLINE USERS',
+                        metrics['online_users'] ?? '0',
+                        Icons.circle,
+                        highlight: true,
+                        isLive: true,
+                      ),
+                      const SizedBox(width: 24),
+                      _buildSimpleCard(
+                        'BLOCKED DEVICES',
+                        metrics['blocked_devices'] ?? '0',
+                        Icons.block,
+                        customColor: Colors.orangeAccent,
+                      ),
+                      const SizedBox(width: 24),
+                      _buildSimpleCard(
+                        'FAILED LOGINS',
+                        metrics['failed_logins'] ?? '0',
+                        Icons.security_outlined,
+                        customColor: Colors.redAccent,
+                      ),
+                    ],
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                _buildSimpleCard(
-                  'TOTAL USERS',
-                  '1,254',
-                  Icons.people_outline,
-                  highlight: true,
-                ),
-                const SizedBox(width: 24),
-                _buildSimpleCard(
-                  'ONLINE USERS',
-                  '42',
-                  Icons.circle,
-                  highlight: true,
-                  isLive: true,
-                ),
-                const SizedBox(width: 24),
-                _buildSimpleCard(
-                  'BLOCKED DEVICES',
-                  '7',
-                  Icons.block,
-                  customColor: Colors.orangeAccent,
-                ),
-                const SizedBox(width: 24),
-                _buildSimpleCard(
-                  'FAILED LOGINS',
-                  '12',
-                  Icons.security_outlined,
-                  customColor: Colors.redAccent,
-                ),
-              ],
-            ),
-          ],
-        ),
+            );
+          }
+          return const SizedBox.shrink();
+        },
       ),
     );
   }
