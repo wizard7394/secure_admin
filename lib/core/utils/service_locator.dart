@@ -17,17 +17,25 @@ void setupServiceLocator() {
   sl.registerLazySingleton<ApiClient>(() => ApiClient());
 
   // Repositories
+  // تزریق نمونه آپدیت شده ApiClient به رپازیتوری‌ها برای پردازش روت‌ها
   sl.registerLazySingleton<AuthRepository>(() => AuthRepository());
-  sl.registerLazySingleton<DashboardRepository>(() => DashboardRepository());
+  sl.registerLazySingleton<DashboardRepository>(
+    () => DashboardRepository(sl<ApiClient>()),
+  );
   sl.registerLazySingleton<AdminCourseRepository>(
     () => AdminCourseRepository(),
   );
   sl.registerLazySingleton<DeviceRepository>(() => DeviceRepository());
 
   // BLoCs
-  sl.registerFactory<AuthBloc>(() => AuthBloc(sl()));
-  sl.registerFactory<DashboardBloc>(() => DashboardBloc(sl()));
-  sl.registerFactory<CourseBloc>(() => CourseBloc(sl()));
-  sl.registerFactory<CourseDetailsBloc>(() => CourseDetailsBloc(sl()));
-  sl.registerFactory<DeviceBloc>(() => DeviceBloc(sl()));
+  // پاس دادن دقیق نمونه‌ها به کانستراکتورهای موقعیت‌محور و نام‌دار
+  sl.registerFactory<AuthBloc>(() => AuthBloc(sl<AuthRepository>()));
+  sl.registerFactory<DashboardBloc>(
+    () => DashboardBloc(repository: sl<DashboardRepository>()),
+  );
+  sl.registerFactory<CourseBloc>(() => CourseBloc(sl<AdminCourseRepository>()));
+  sl.registerFactory<CourseDetailsBloc>(
+    () => CourseDetailsBloc(sl<AdminCourseRepository>()),
+  );
+  sl.registerFactory<DeviceBloc>(() => DeviceBloc(sl<DeviceRepository>()));
 }

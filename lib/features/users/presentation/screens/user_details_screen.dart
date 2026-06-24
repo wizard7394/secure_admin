@@ -93,7 +93,7 @@ class UserDetailsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: 'ENABLE',
+                      initialValue: 'ENABLE',
                       dropdownColor: const Color(0xFF1A1A1A),
                       style: const TextStyle(
                         color: Colors.white,

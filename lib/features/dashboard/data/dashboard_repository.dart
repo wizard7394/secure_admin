@@ -1,25 +1,21 @@
-import 'package:dio/dio.dart';
-import '../../../../core/utils/service_locator.dart';
-import '../../../../core/network/api_client.dart';
+import '../../../core/network/api_client.dart';
 
 class DashboardRepository {
-  final Dio _dio;
+  final ApiClient apiClient;
 
-  DashboardRepository() : _dio = sl<ApiClient>().dio;
+  DashboardRepository(this.apiClient);
 
   Future<Map<String, dynamic>> getDashboardStats() async {
     try {
-      final response = await _dio.get('/dashboard/stats');
+      final response = await apiClient.dio.get('/dashboard/stats');
+
       if (response.statusCode == 200) {
         return response.data as Map<String, dynamic>;
+      } else {
+        throw Exception('Server returned status code: ${response.statusCode}');
       }
-      throw Exception('Failed to load dashboard statistics');
-    } on DioException catch (e) {
-      throw Exception(
-        e.response?.data['detail'] ?? 'Server error fetching statistics',
-      );
     } catch (e) {
-      throw Exception('Unexpected network error occurred');
+      throw Exception('Network error or server unreachable: $e');
     }
   }
 }
