@@ -70,7 +70,7 @@ class AdminCourseRepository {
 
   Future<Map<String, dynamic>> getCourseTree(int courseId) async {
     try {
-      final response = await apiClient.dio.get('/course/view/$courseId');
+      final response = await apiClient.dio.get('/course/admin/view/$courseId');
       if (response.statusCode == 200) {
         return response.data as Map<String, dynamic>;
       }

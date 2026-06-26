@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/utils/service_locator.dart';
 import '../bloc/course_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 class CoursesScreen extends StatelessWidget {
   const CoursesScreen({super.key});
@@ -156,94 +157,97 @@ class _CoursesView extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 60,
-            child: Text(
-              courseId.toString(),
-              style: const TextStyle(
-                color: Colors.white54,
-                fontFamily: 'monospace',
-              ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.go('/courses/$courseId'),
+          borderRadius: BorderRadius.circular(4),
+          hoverColor: Colors.white.withValues(alpha: 0.02),
+          child: Ink(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF141414),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
             ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              course['title'] ?? 'Unknown Course',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              '${course['total_videos'] ?? 0} Chapters',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontFamily: 'monospace',
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              '${course['total_students'] ?? 0} Users',
-              style: const TextStyle(
-                color: Color(0xFF00E676),
-                fontFamily: 'monospace',
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 120,
-            child: Text(
-              isActive ? 'ACTIVE' : 'DISABLED',
-              style: TextStyle(
-                color: isActive ? const Color(0xFF00E676) : Colors.redAccent,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1,
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 100,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                IconButton(
-                  icon: const Icon(
-                    Icons.settings_outlined,
-                    color: Colors.white54,
-                    size: 20,
+                SizedBox(
+                  width: 60,
+                  child: Text(
+                    courseId.toString(),
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontFamily: 'monospace',
+                    ),
                   ),
-                  onPressed: () {
-                    // بعداً این بخش رو به ساختار درختی متصل می‌کنیم
-                  },
                 ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    color: Colors.redAccent,
-                    size: 20,
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    course['title'] ?? 'Unknown Course',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
                   ),
-                  onPressed: () => _confirmDeleteCourse(context, courseId),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    '${course['total_videos'] ?? 0} Chapters',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    '${course['total_students'] ?? 0} Users',
+                    style: const TextStyle(
+                      color: Color(0xFF00E676),
+                      fontFamily: 'monospace',
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 120,
+                  child: Text(
+                    isActive ? 'ACTIVE' : 'DISABLED',
+                    style: TextStyle(
+                      color: isActive
+                          ? const Color(0xFF00E676)
+                          : Colors.redAccent,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 100,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.redAccent,
+                          size: 20,
+                        ),
+                        onPressed: () =>
+                            _confirmDeleteCourse(context, courseId),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
