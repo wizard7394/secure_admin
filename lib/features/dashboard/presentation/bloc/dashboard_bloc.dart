@@ -45,12 +45,10 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   }
 
   void _onStartLiveUpdate(StartLiveUpdate event, Emitter<DashboardState> emit) {
-    // اگر از قبل یک تایمر زنده وجود داره، به هیچ وجه تایمر دوم نساز!
     if (_liveTimer != null && _liveTimer!.isActive) return;
 
     add(FetchDashboardStats());
 
-    // تایمر زنده و استاندارد ۳ ثانیه‌ای برای مانیتورینگ
     _liveTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       add(FetchDashboardStats());
     });

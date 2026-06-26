@@ -1,60 +1,82 @@
-import 'package:dio/dio.dart';
-import '../../../../core/utils/service_locator.dart';
-import '../../../../core/network/api_client.dart';
+import '../../../core/network/api_client.dart';
 
 class AdminCourseRepository {
-  final Dio _dio;
+  final ApiClient apiClient;
 
-  AdminCourseRepository() : _dio = sl<ApiClient>().dio;
+  AdminCourseRepository(this.apiClient);
 
-  Future<List<dynamic>> getAllCourses() async {
+  Future<List<Map<String, dynamic>>> getAllCourses() async {
     try {
-      final response = await _dio.get('/admin/courses');
+      final response = await apiClient.dio.get('/course/admin/list');
       if (response.statusCode == 200) {
-        return response.data['courses'] as List<dynamic>;
+        final List<dynamic> data = response.data;
+        return data.map((e) => e as Map<String, dynamic>).toList();
       }
-      throw Exception('Failed to load courses');
-    } on DioException catch (e) {
-      throw Exception(e.response?.data['detail'] ?? 'Network error');
+      throw Exception('Failed to load courses: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error fetching admin courses: $e');
     }
   }
 
-  Future<void> createCourse(
+  Future<Map<String, dynamic>> createCourse(
     String title,
     String watermarkText,
     String watermarkColor,
   ) async {
     try {
-      await _dio.post(
-        '/admin/course',
+      final response = await apiClient.dio.post(
+        '/course/admin/create',
         data: {
           'title': title,
           'watermark_text': watermarkText,
           'watermark_color': watermarkColor,
+          'is_active': true,
         },
       );
-    } on DioException catch (e) {
-      throw Exception(e.response?.data['detail'] ?? 'Failed to create course');
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Failed to create course');
+    } catch (e) {
+      throw Exception('Error creating course: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> updateCourse(
+    int courseId,
+    Map<String, dynamic> courseData,
+  ) async {
+    try {
+      final response = await apiClient.dio.put(
+        '/course/admin/update/$courseId',
+        data: courseData,
+      );
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      }
+      throw Exception('Failed to update course');
+    } catch (e) {
+      throw Exception('Error updating course: $e');
     }
   }
 
   Future<void> deleteCourse(int courseId) async {
     try {
-      await _dio.delete('/admin/course/$courseId');
-    } on DioException catch (e) {
-      throw Exception(e.response?.data['detail'] ?? 'Failed to delete course');
+      await apiClient.dio.delete('/course/admin/delete/$courseId');
+    } catch (e) {
+      throw Exception('Error deleting course: $e');
     }
   }
 
   Future<Map<String, dynamic>> getCourseTree(int courseId) async {
     try {
-      final response = await _dio.get('/admin/course/$courseId');
+      final response = await apiClient.dio.get('/course/view/$courseId');
       if (response.statusCode == 200) {
         return response.data as Map<String, dynamic>;
       }
       throw Exception('Failed to load course details');
-    } on DioException catch (e) {
-      throw Exception(e.response?.data['detail'] ?? 'Network error');
+    } catch (e) {
+      throw Exception('Error fetching course tree: $e');
     }
   }
 
@@ -70,8 +92,8 @@ class AdminCourseRepository {
     int? vaultId,
   }) async {
     try {
-      await _dio.post(
-        '/admin/node',
+      await apiClient.dio.post(
+        '/course/admin/node/create',
         data: {
           'course_id': courseId,
           'parent_id': parentId,
@@ -84,8 +106,8 @@ class AdminCourseRepository {
           'vault_id': vaultId,
         },
       );
-    } on DioException catch (e) {
-      throw Exception(e.response?.data['detail'] ?? 'Failed to create node');
+    } catch (e) {
+      throw Exception('Error creating node: $e');
     }
   }
 
@@ -99,8 +121,8 @@ class AdminCourseRepository {
     int? vaultId,
   }) async {
     try {
-      await _dio.put(
-        '/admin/node/$nodeId',
+      await apiClient.dio.put(
+        '/course/admin/node/update/$nodeId',
         data: {
           'title': title,
           'sort_order': sortOrder,
@@ -110,60 +132,27 @@ class AdminCourseRepository {
           'vault_id': vaultId,
         },
       );
-    } on DioException catch (e) {
-      throw Exception(e.response?.data['detail'] ?? 'Failed to update node');
+    } catch (e) {
+      throw Exception('Error updating node: $e');
     }
   }
 
   Future<void> deleteNode(int nodeId) async {
     try {
-      await _dio.delete('/admin/node/$nodeId');
-    } on DioException catch (e) {
-      throw Exception(e.response?.data['detail'] ?? 'Failed to delete node');
-    }
-  }
-
-  Future<List<dynamic>> getVaultItems(
-    int courseId, {
-    String status = 'unused',
-  }) async {
-    try {
-      final response = await _dio.get(
-        '/admin/vault/$courseId',
-        queryParameters: {'status_filter': status},
-      );
-      if (response.statusCode == 200) {
-        return response.data['vault_items'] as List<dynamic>;
-      }
-      throw Exception('Failed to load vault items');
-    } on DioException catch (e) {
-      throw Exception(e.response?.data['detail'] ?? 'Vault fetch error');
-    }
-  }
-
-  Future<void> updateVaultUrl(int vaultId, String downloadUrl) async {
-    try {
-      await _dio.put(
-        '/admin/vault/$vaultId/url',
-        data: {'download_url': downloadUrl},
-      );
-    } on DioException catch (e) {
-      throw Exception(
-        e.response?.data['detail'] ?? 'Failed to update vault URL',
-      );
+      await apiClient.dio.delete('/course/admin/node/delete/$nodeId');
+    } catch (e) {
+      throw Exception('Error deleting node: $e');
     }
   }
 
   Future<void> autoBuildCourse(int courseId, String batchName) async {
     try {
-      await _dio.post(
-        '/admin/vault/$courseId/auto-build',
-        data: {'batch_name': batchName},
+      await apiClient.dio.post(
+        '/course/admin/autobuild',
+        data: {'course_id': courseId, 'batch_name': batchName},
       );
-    } on DioException catch (e) {
-      throw Exception(
-        e.response?.data['detail'] ?? 'Auto-build engine failure',
-      );
+    } catch (e) {
+      throw Exception('Error autobuilding course: $e');
     }
   }
 }

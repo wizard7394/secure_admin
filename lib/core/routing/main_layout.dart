@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/utils/service_locator.dart';
+import '../../features/auth/data/auth_repository.dart';
 
 class MainLayout extends StatelessWidget {
   final Widget child;
@@ -65,6 +67,9 @@ class MainLayout extends StatelessWidget {
                   route: '/notifications',
                   isActive: currentPath.startsWith('/notifications'),
                 ),
+                const Spacer(),
+                _buildLogoutItem(context),
+                const SizedBox(height: 32),
               ],
             ),
           ),
@@ -113,6 +118,35 @@ class MainLayout extends StatelessWidget {
                 fontSize: 13,
                 letterSpacing: 1.5,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoutItem(BuildContext context) {
+    return InkWell(
+      onTap: () async {
+        await sl<AuthRepository>().logout();
+        if (context.mounted) {
+          context.go('/login');
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        child: const Row(
+          children: [
+            Icon(Icons.logout, color: Colors.redAccent, size: 20),
+            SizedBox(width: 16),
+            Text(
+              'LOGOUT',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontSize: 13,
+                letterSpacing: 1.5,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],

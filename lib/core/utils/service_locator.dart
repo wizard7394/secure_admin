@@ -23,7 +23,7 @@ void setupServiceLocator() {
     () => DashboardRepository(sl<ApiClient>()),
   );
   sl.registerLazySingleton<AdminCourseRepository>(
-    () => AdminCourseRepository(),
+    () => AdminCourseRepository(sl<ApiClient>()),
   );
   sl.registerLazySingleton<DeviceRepository>(() => DeviceRepository());
 

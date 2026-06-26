@@ -18,6 +18,7 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          // خواندن مستقیم و زنده از استوریج در لحظه شلیک درخواست
           final token = await _storage.read(key: 'admin_access_token');
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
@@ -25,9 +26,13 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (DioException e, handler) async {
+          // اگر ارور 401 بود و یوزر واقعاً توکن داشت، یعنی توکن منقضی شده
           if (e.response?.statusCode == 401) {
-            await _storage.delete(key: 'admin_access_token');
-            // Logic to redirect to login screen can be triggered here
+            final hasToken =
+                await _storage.read(key: 'admin_access_token') != null;
+            if (hasToken) {
+              await _storage.delete(key: 'admin_access_token');
+            }
           }
           return handler.next(e);
         },
