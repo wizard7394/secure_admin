@@ -94,9 +94,9 @@ class _CourseDetailsView extends StatelessWidget {
                         ),
                       ),
                       ElevatedButton.icon(
-                        onPressed: () {},
+                        onPressed: () => _showNodeDialog(context, null, null),
                         icon: const Icon(Icons.add, size: 18),
-                        label: const Text('ADD LESSON'),
+                        label: const Text('ADD LESSON / FOLDER'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(
                             0xFF00E676,
@@ -124,7 +124,12 @@ class _CourseDetailsView extends StatelessWidget {
                         2,
                         '0',
                       );
-                      return _buildNodeItem(entry.value, indexStr, 0.0);
+                      return _buildNodeItem(
+                        context,
+                        entry.value,
+                        indexStr,
+                        0.0,
+                      );
                     }),
                 ],
               ),
@@ -136,12 +141,18 @@ class _CourseDetailsView extends StatelessWidget {
     );
   }
 
-  Widget _buildNodeItem(dynamic node, String number, double indent) {
+  Widget _buildNodeItem(
+    BuildContext context,
+    dynamic node,
+    String number,
+    double indent,
+  ) {
     final bool isFolder = node['item_type'] == 'folder';
     final String title = node['title'] ?? 'UNTITLED';
     final String duration = node['duration']?.toString() ?? '--:--';
     final bool hasVault = node['vault'] != null;
     final List<dynamic> children = node['children'] ?? [];
+    final int nodeId = node['id'];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,13 +229,25 @@ class _CourseDetailsView extends StatelessWidget {
                 ),
               ],
               const SizedBox(width: 24),
+              if (isFolder)
+                IconButton(
+                  icon: const Icon(
+                    Icons.add_circle_outline,
+                    color: Color(0xFF00E676),
+                    size: 20,
+                  ),
+                  onPressed: () => _showNodeDialog(context, null, nodeId),
+                  tooltip: 'Add child',
+                  hoverColor: const Color(0xFF00E676).withValues(alpha: 0.1),
+                ),
               IconButton(
                 icon: const Icon(
                   Icons.edit_outlined,
                   color: Colors.white54,
                   size: 20,
                 ),
-                onPressed: () {},
+                onPressed: () => _showNodeDialog(context, node, null),
+                tooltip: 'Edit',
                 hoverColor: Colors.white10,
               ),
               IconButton(
@@ -233,7 +256,8 @@ class _CourseDetailsView extends StatelessWidget {
                   color: Colors.redAccent,
                   size: 20,
                 ),
-                onPressed: () {},
+                onPressed: () => _confirmDeleteNode(context, nodeId),
+                tooltip: 'Delete',
                 hoverColor: Colors.redAccent.withValues(alpha: 0.1),
               ),
             ],
@@ -243,11 +267,256 @@ class _CourseDetailsView extends StatelessWidget {
           ...children.asMap().entries.map((childEntry) {
             final childIndexStr = '$number.${childEntry.key + 1}';
             return _buildNodeItem(
+              context,
               childEntry.value,
               childIndexStr,
               indent + 32.0,
             );
           }),
+      ],
+    );
+  }
+
+  void _showNodeDialog(
+    BuildContext context,
+    dynamic existingNode,
+    int? forceParentId,
+  ) {
+    final isEditing = existingNode != null;
+    final titleCtrl = TextEditingController(
+      text: isEditing ? existingNode['title'] : '',
+    );
+    final durationCtrl = TextEditingController(
+      text: isEditing ? existingNode['duration']?.toString() : '',
+    );
+    final sortOrderCtrl = TextEditingController(
+      text: isEditing ? existingNode['sort_order']?.toString() : '0',
+    );
+    String selectedType = isEditing ? existingNode['item_type'] : 'video';
+    final int? parentId = isEditing ? existingNode['parent_id'] : forceParentId;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF141414),
+              title: Text(
+                isEditing ? 'EDIT NODE' : 'CREATE NEW NODE',
+                style: const TextStyle(
+                  color: Color(0xFF00E676),
+                  fontSize: 14,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              content: SizedBox(
+                width: 450,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (!isEditing) ...[
+                      const Text(
+                        'NODE TYPE',
+                        style: TextStyle(color: Colors.white54, fontSize: 11),
+                      ),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedType,
+                        dropdownColor: const Color(0xFF1A1A1A),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'monospace',
+                        ),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: const Color(0xFF0A0A0A),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.05),
+                            ),
+                          ),
+                          focusedBorder: const OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF00E676)),
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'video',
+                            child: Text('VIDEO LESSON'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'folder',
+                            child: Text('FOLDER / SECTION'),
+                          ),
+                        ],
+                        onChanged: (val) => setState(() => selectedType = val!),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    _buildDialogField('TITLE', titleCtrl),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildDialogField(
+                            'SORT ORDER',
+                            sortOrderCtrl,
+                            isNumber: true,
+                          ),
+                        ),
+                        if (selectedType == 'video') ...[
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildDialogField(
+                              'DURATION (MIN)',
+                              durationCtrl,
+                              isNumber: true,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text(
+                    'CANCEL',
+                    style: TextStyle(color: Colors.white54),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (titleCtrl.text.isEmpty) return;
+
+                    final parsedCourseId = int.parse(courseId);
+                    final parsedSort = int.tryParse(sortOrderCtrl.text) ?? 0;
+                    final parsedDuration = int.tryParse(durationCtrl.text);
+
+                    if (isEditing) {
+                      context.read<CourseDetailsBloc>().add(
+                        UpdateNodeEvent(
+                          parsedCourseId,
+                          existingNode['id'],
+                          titleCtrl.text,
+                          parsedSort,
+                          duration: selectedType == 'video'
+                              ? parsedDuration
+                              : null,
+                        ),
+                      );
+                    } else {
+                      context.read<CourseDetailsBloc>().add(
+                        CreateNodeEvent(
+                          parsedCourseId,
+                          parentId,
+                          selectedType,
+                          titleCtrl.text,
+                          parsedSort,
+                          duration: selectedType == 'video'
+                              ? parsedDuration
+                              : null,
+                        ),
+                      );
+                    }
+                    Navigator.pop(dialogContext);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00E676),
+                    foregroundColor: Colors.black,
+                  ),
+                  child: Text(isEditing ? 'UPDATE' : 'SAVE NODE'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteNode(BuildContext context, int nodeId) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF141414),
+        title: const Text(
+          'DANGER: DELETE NODE',
+          style: TextStyle(
+            color: Colors.redAccent,
+            fontSize: 14,
+            letterSpacing: 1.5,
+          ),
+        ),
+        content: const Text(
+          'Are you sure you want to delete this item? If it is a folder, all child items will be lost.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('ABORT', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              context.read<CourseDetailsBloc>().add(
+                DeleteNodeEvent(int.parse(courseId), nodeId),
+              );
+              Navigator.pop(dialogContext);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('DELETE'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDialogField(
+    String label,
+    TextEditingController controller, {
+    bool isNumber = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white54,
+            fontSize: 11,
+            letterSpacing: 1,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontFamily: 'monospace',
+          ),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: const Color(0xFF0A0A0A),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(
+                color: Colors.white.withValues(alpha: 0.05),
+              ),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFF00E676)),
+            ),
+          ),
+        ),
       ],
     );
   }
