@@ -93,22 +93,47 @@ class _CourseDetailsView extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      ElevatedButton.icon(
-                        onPressed: () => _showNodeDialog(context, null, null),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('ADD LESSON / FOLDER'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(
-                            0xFF00E676,
-                          ).withValues(alpha: 0.1),
-                          foregroundColor: const Color(0xFF00E676),
-                          elevation: 0,
-                          side: const BorderSide(color: Color(0xFF00E676)),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 16,
+                      Row(
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () => _showAutoBuildDialog(context),
+                            icon: const Icon(Icons.auto_awesome, size: 16),
+                            label: const Text('AUTO-BUILD'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orangeAccent.withValues(
+                                alpha: 0.1,
+                              ),
+                              foregroundColor: Colors.orangeAccent,
+                              elevation: 0,
+                              side: const BorderSide(
+                                color: Colors.orangeAccent,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 16),
+                          ElevatedButton.icon(
+                            onPressed: () =>
+                                _showNodeDialog(context, null, null),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('ADD LESSON / FOLDER'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(
+                                0xFF00E676,
+                              ).withValues(alpha: 0.1),
+                              foregroundColor: const Color(0xFF00E676),
+                              elevation: 0,
+                              side: const BorderSide(color: Color(0xFF00E676)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -277,11 +302,73 @@ class _CourseDetailsView extends StatelessWidget {
     );
   }
 
+  void _showAutoBuildDialog(BuildContext context) {
+    final bloc = context.read<CourseDetailsBloc>();
+    final batchCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF141414),
+        title: const Text(
+          'AUTO-BUILD FROM SERVER',
+          style: TextStyle(
+            color: Colors.orangeAccent,
+            fontSize: 14,
+            letterSpacing: 1.5,
+          ),
+        ),
+        content: SizedBox(
+          width: 450,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Enter the batch folder name exactly as it is on the server to auto-generate the course structure.',
+                style: TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 16),
+              _buildDialogField('BATCH DIRECTORY NAME', batchCtrl),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (batchCtrl.text.isNotEmpty) {
+                bloc.add(
+                  AutoBuildCourseEvent(int.parse(courseId), batchCtrl.text),
+                );
+                Navigator.pop(dialogContext);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orangeAccent,
+              foregroundColor: Colors.black,
+            ),
+            child: const Text('START BUILD'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showNodeDialog(
     BuildContext context,
     dynamic existingNode,
     int? forceParentId,
   ) {
+    final bloc = context
+        .read<CourseDetailsBloc>(); // کانتکست قبل از باز شدن دیالوگ ذخیره شد
+
     final isEditing = existingNode != null;
     final titleCtrl = TextEditingController(
       text: isEditing ? existingNode['title'] : '',
@@ -398,7 +485,7 @@ class _CourseDetailsView extends StatelessWidget {
                     final parsedDuration = int.tryParse(durationCtrl.text);
 
                     if (isEditing) {
-                      context.read<CourseDetailsBloc>().add(
+                      bloc.add(
                         UpdateNodeEvent(
                           parsedCourseId,
                           existingNode['id'],
@@ -410,7 +497,7 @@ class _CourseDetailsView extends StatelessWidget {
                         ),
                       );
                     } else {
-                      context.read<CourseDetailsBloc>().add(
+                      bloc.add(
                         CreateNodeEvent(
                           parsedCourseId,
                           parentId,
@@ -440,6 +527,7 @@ class _CourseDetailsView extends StatelessWidget {
   }
 
   void _confirmDeleteNode(BuildContext context, int nodeId) {
+    final bloc = context.read<CourseDetailsBloc>();
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -463,9 +551,7 @@ class _CourseDetailsView extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              context.read<CourseDetailsBloc>().add(
-                DeleteNodeEvent(int.parse(courseId), nodeId),
-              );
+              bloc.add(DeleteNodeEvent(int.parse(courseId), nodeId));
               Navigator.pop(dialogContext);
             },
             style: ElevatedButton.styleFrom(

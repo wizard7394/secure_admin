@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/utils/service_locator.dart';
 import '../bloc/course_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../data/course_repository.dart';
 
 class CoursesScreen extends StatelessWidget {
   const CoursesScreen({super.key});
@@ -36,8 +39,18 @@ class _CoursesView extends StatelessWidget {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.download, color: Color(0xFF00E676)),
+            tooltip: 'EXPORT VAULT DATA',
+            onPressed: () => _exportVault(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.upload, color: Colors.orangeAccent),
+            tooltip: 'IMPORT VAULT DATA',
+            onPressed: () => _importVault(context),
+          ),
           Padding(
-            padding: const EdgeInsets.only(right: 32.0),
+            padding: const EdgeInsets.only(right: 32.0, left: 16.0),
             child: ElevatedButton.icon(
               onPressed: () => _showCreateCourseDialog(context),
               icon: const Icon(Icons.add, size: 16),
@@ -105,6 +118,132 @@ class _CoursesView extends StatelessWidget {
           }
           return const SizedBox.shrink();
         },
+      ),
+    );
+  }
+
+  void _exportVault(BuildContext context) async {
+    try {
+      final repo = sl<AdminCourseRepository>();
+      final data = await repo.exportVault();
+      final jsonStr = jsonEncode(data);
+      if (!context.mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF141414),
+          title: const Text(
+            'VAULT EXPORT',
+            style: TextStyle(color: Color(0xFF00E676)),
+          ),
+          content: SizedBox(
+            width: 500,
+            child: TextField(
+              controller: TextEditingController(text: jsonStr),
+              maxLines: 10,
+              readOnly: true,
+              style: const TextStyle(
+                color: Colors.white54,
+                fontFamily: 'monospace',
+                fontSize: 10,
+              ),
+              decoration: const InputDecoration(
+                filled: true,
+                fillColor: Colors.black,
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text(
+                'CLOSE',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00E676),
+                foregroundColor: Colors.black,
+              ),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: jsonStr));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('COPIED TO CLIPBOARD!')),
+                );
+              },
+              icon: const Icon(Icons.copy),
+              label: const Text('COPY JSON'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('ERROR: $e')));
+    }
+  }
+
+  void _importVault(BuildContext context) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF141414),
+        title: const Text(
+          'VAULT IMPORT',
+          style: TextStyle(color: Colors.orangeAccent),
+        ),
+        content: SizedBox(
+          width: 500,
+          child: TextField(
+            controller: ctrl,
+            maxLines: 10,
+            style: const TextStyle(
+              color: Colors.white,
+              fontFamily: 'monospace',
+              fontSize: 10,
+            ),
+            decoration: const InputDecoration(
+              filled: true,
+              fillColor: Colors.black,
+              hintText: 'Paste JSON here...',
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'CANCEL',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orangeAccent,
+              foregroundColor: Colors.black,
+            ),
+            onPressed: () async {
+              try {
+                final data = jsonDecode(ctrl.text);
+                await sl<AdminCourseRepository>().importVault(data);
+                if (!ctx.mounted) return;
+                Navigator.pop(ctx);
+                context.read<CourseBloc>().add(FetchCourses());
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('IMPORT SUCCESSFUL!')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('ERROR: $e')));
+              }
+            },
+            child: const Text('IMPORT & OVERWRITE'),
+          ),
+        ],
       ),
     );
   }

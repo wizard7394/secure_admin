@@ -69,7 +69,7 @@ class CourseBloc extends Bloc<CourseEvent, CourseState> {
 
   Future<void> _loadCourses(Emitter<CourseState> emit) async {
     try {
-      final data = await repository.getAllCourses();
+      final data = await repository.getCourses();
       emit(CourseLoaded(data));
     } catch (e) {
       emit(CourseError(e.toString().replaceAll('Exception: ', '')));
