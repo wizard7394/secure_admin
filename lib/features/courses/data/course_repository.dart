@@ -10,6 +10,13 @@ class AdminCourseRepository {
     return res.data as List<dynamic>? ?? [];
   }
 
+  Future<void> updateCourse(int courseId, String title, bool isActive) async {
+    await _apiClient.dio.put(
+      '/course/admin/update/$courseId',
+      data: {'title': title, 'is_active': isActive},
+    );
+  }
+
   Future<Map<String, dynamic>> getCourseTree(int courseId) async {
     final res = await _apiClient.dio.get('/course/admin/view/$courseId');
     return res.data;
@@ -88,19 +95,18 @@ class AdminCourseRepository {
     await _apiClient.dio.delete('/course/admin/node/delete/$nodeId');
   }
 
+  Future<void> reorderNodes(List<Map<String, dynamic>> reorderData) async {
+    await _apiClient.dio.post('/course/admin/node/reorder', data: reorderData);
+  }
+
+  Future<void> injectEncryptorKeys(Map<String, dynamic> data) async {
+    await _apiClient.dio.post('/admin/vault/bulk', data: data);
+  }
+
   Future<void> autoBuildCourse(int courseId, String batchName) async {
     await _apiClient.dio.post(
-      '/course/admin/autobuild',
-      data: {'course_id': courseId, 'batch_name': batchName},
+      '/api/v1/admin/vault/trigger-autobuild/$courseId',
+      data: {'batch_name': batchName},
     );
-  }
-
-  Future<Map<String, dynamic>> exportVault() async {
-    final res = await _apiClient.dio.get('/course/admin/export');
-    return res.data;
-  }
-
-  Future<void> importVault(Map<String, dynamic> data) async {
-    await _apiClient.dio.post('/course/admin/import', data: data);
   }
 }

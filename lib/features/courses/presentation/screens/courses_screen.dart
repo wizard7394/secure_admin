@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/utils/service_locator.dart';
 import '../bloc/course_bloc.dart';
@@ -40,14 +39,9 @@ class _CoursesView extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.download, color: Color(0xFF00E676)),
-            tooltip: 'EXPORT VAULT DATA',
-            onPressed: () => _exportVault(context),
-          ),
-          IconButton(
-            icon: const Icon(Icons.upload, color: Colors.orangeAccent),
-            tooltip: 'IMPORT VAULT DATA',
-            onPressed: () => _importVault(context),
+            icon: const Icon(Icons.vpn_key, color: Colors.blueAccent),
+            tooltip: 'INJECT ENCRYPTOR KEYS',
+            onPressed: () => _injectKeys(context),
           ),
           Padding(
             padding: const EdgeInsets.only(right: 32.0, left: 16.0),
@@ -122,94 +116,78 @@ class _CoursesView extends StatelessWidget {
     );
   }
 
-  void _exportVault(BuildContext context) async {
-    try {
-      final repo = sl<AdminCourseRepository>();
-      final data = await repo.exportVault();
-      final jsonStr = jsonEncode(data);
-      if (!context.mounted) return;
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF141414),
-          title: const Text(
-            'VAULT EXPORT',
-            style: TextStyle(color: Color(0xFF00E676)),
-          ),
-          content: SizedBox(
-            width: 500,
-            child: TextField(
-              controller: TextEditingController(text: jsonStr),
-              maxLines: 10,
-              readOnly: true,
-              style: const TextStyle(
-                color: Colors.white54,
-                fontFamily: 'monospace',
-                fontSize: 10,
-              ),
-              decoration: const InputDecoration(
-                filled: true,
-                fillColor: Colors.black,
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text(
-                'CLOSE',
-                style: TextStyle(color: Colors.white54),
-              ),
-            ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00E676),
-                foregroundColor: Colors.black,
-              ),
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: jsonStr));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('COPIED TO CLIPBOARD!')),
-                );
-              },
-              icon: const Icon(Icons.copy),
-              label: const Text('COPY JSON'),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('ERROR: $e')));
-    }
-  }
+  void _injectKeys(BuildContext context) {
+    final jsonCtrl = TextEditingController();
+    final courseIdCtrl = TextEditingController();
 
-  void _importVault(BuildContext context) {
-    final ctrl = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF141414),
         title: const Text(
-          'VAULT IMPORT',
-          style: TextStyle(color: Colors.orangeAccent),
+          'INJECT ENCRYPTOR JSON',
+          style: TextStyle(
+            color: Colors.blueAccent,
+            letterSpacing: 1.5,
+            fontSize: 14,
+          ),
         ),
         content: SizedBox(
           width: 500,
-          child: TextField(
-            controller: ctrl,
-            maxLines: 10,
-            style: const TextStyle(
-              color: Colors.white,
-              fontFamily: 'monospace',
-              fontSize: 10,
-            ),
-            decoration: const InputDecoration(
-              filled: true,
-              fillColor: Colors.black,
-              hintText: 'Paste JSON here...',
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Optional: Override Course ID (Leave blank to use JSON ID)',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: courseIdCtrl,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                ),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.black,
+                  hintText: 'e.g. 13030',
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Paste the JSON code generated by the Video Encryptor here.',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: jsonCtrl,
+                maxLines: 8,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                ),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.black,
+                  hintText: 'Paste array [ { ... } ] here...',
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
@@ -222,18 +200,33 @@ class _CoursesView extends StatelessWidget {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orangeAccent,
-              foregroundColor: Colors.black,
+              backgroundColor: Colors.blueAccent,
+              foregroundColor: Colors.white,
             ),
             onPressed: () async {
               try {
-                final data = jsonDecode(ctrl.text);
-                await sl<AdminCourseRepository>().importVault(data);
+                final data = jsonDecode(jsonCtrl.text);
+                List<dynamic> batches = data is List ? data : [data];
+
+                for (var batch in batches) {
+                  final int targetCourseId =
+                      int.tryParse(courseIdCtrl.text) ?? batch['course_id'];
+                  batch['course_id'] = targetCourseId;
+
+                  await sl<AdminCourseRepository>().injectEncryptorKeys(batch);
+                  await sl<AdminCourseRepository>().autoBuildCourse(
+                    targetCourseId,
+                    batch['batch_name'],
+                  );
+                }
+
                 if (!ctx.mounted) return;
                 Navigator.pop(ctx);
                 context.read<CourseBloc>().add(FetchCourses());
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('IMPORT SUCCESSFUL!')),
+                  const SnackBar(
+                    content: Text('KEYS INJECTED & TREE BUILT SUCCESSFULLY!'),
+                  ),
                 );
               } catch (e) {
                 ScaffoldMessenger.of(
@@ -241,7 +234,7 @@ class _CoursesView extends StatelessWidget {
                 ).showSnackBar(SnackBar(content: Text('ERROR: $e')));
               }
             },
-            child: const Text('IMPORT & OVERWRITE'),
+            child: const Text('INJECT TO DATABASE'),
           ),
         ],
       ),
@@ -278,7 +271,7 @@ class _CoursesView extends StatelessWidget {
           ),
           SizedBox(width: 120, child: Text('STATUS', style: headerStyle)),
           SizedBox(
-            width: 100,
+            width: 120,
             child: Text(
               'ACTIONS',
               style: headerStyle,
@@ -335,7 +328,7 @@ class _CoursesView extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    '${course['total_videos'] ?? 0} Chapters',
+                    '${course['total_videos'] ?? 0} Media Files',
                     style: const TextStyle(
                       color: Colors.white70,
                       fontFamily: 'monospace',
@@ -367,10 +360,18 @@ class _CoursesView extends StatelessWidget {
                   ),
                 ),
                 SizedBox(
-                  width: 100,
+                  width: 120,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.edit_outlined,
+                          color: Colors.white70,
+                          size: 20,
+                        ),
+                        onPressed: () => _showEditCourseDialog(context, course),
+                      ),
                       IconButton(
                         icon: const Icon(
                           Icons.delete_outline,
@@ -393,8 +394,6 @@ class _CoursesView extends StatelessWidget {
 
   void _showCreateCourseDialog(BuildContext context) {
     final titleController = TextEditingController();
-    final watermarkTextController = TextEditingController();
-    final watermarkColorController = TextEditingController(text: '#FF0000');
 
     showDialog(
       context: context,
@@ -412,19 +411,7 @@ class _CoursesView extends StatelessWidget {
           width: 450,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDialogField('COURSE TITLE', titleController),
-              const SizedBox(height: 16),
-              _buildDialogField(
-                'DYNAMIC WATERMARK TEXT',
-                watermarkTextController,
-              ),
-              const SizedBox(height: 16),
-              _buildDialogField(
-                'WATERMARK COLOR (HEX)',
-                watermarkColorController,
-              ),
-            ],
+            children: [_buildDialogField('COURSE TITLE', titleController)],
           ),
         ),
         actions: [
@@ -439,11 +426,7 @@ class _CoursesView extends StatelessWidget {
             onPressed: () {
               if (titleController.text.isNotEmpty) {
                 context.read<CourseBloc>().add(
-                  CreateCourseEvent(
-                    titleController.text,
-                    watermarkTextController.text,
-                    watermarkColorController.text,
-                  ),
+                  CreateCourseEvent(titleController.text, '', ''),
                 );
                 Navigator.pop(dialogContext);
               }
@@ -455,6 +438,108 @@ class _CoursesView extends StatelessWidget {
             child: const Text('SAVE PACKAGE'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEditCourseDialog(BuildContext context, dynamic course) {
+    final titleController = TextEditingController(text: course['title']);
+    bool statusValue = course['is_active'] ?? true;
+    final int courseId = course['id'];
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF141414),
+          title: const Text(
+            'EDIT SECURE PACKAGE',
+            style: TextStyle(
+              color: Color(0xFF00E676),
+              fontSize: 14,
+              letterSpacing: 1.5,
+            ),
+          ),
+          content: SizedBox(
+            width: 450,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDialogField('COURSE TITLE', titleController),
+                const SizedBox(height: 24),
+                const Text(
+                  'COURSE AVAILABILITY',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 11,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  title: Text(
+                    statusValue ? "ACTIVE / ONLINE" : "DISABLED / OFFLINE",
+                    style: TextStyle(
+                      color: statusValue
+                          ? const Color(0xFF00E676)
+                          : Colors.redAccent,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  value: statusValue,
+                  activeThumbColor: const Color(0xFF00E676),
+                  inactiveThumbColor: Colors.redAccent,
+                  tileColor: const Color(0xFF0A0A0A),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  onChanged: (val) => setDialogState(() => statusValue = val),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                'CANCEL',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (titleController.text.isNotEmpty) {
+                  try {
+                    await sl<AdminCourseRepository>().updateCourse(
+                      courseId,
+                      titleController.text,
+                      statusValue,
+                    );
+                    if (!dialogContext.mounted) return;
+                    Navigator.pop(dialogContext);
+                    context.read<CourseBloc>().add(FetchCourses());
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('PACKAGE UPDATED SUCCESSFULLY!'),
+                      ),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('ERROR: $e')));
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00E676),
+                foregroundColor: Colors.black,
+              ),
+              child: const Text('UPDATE PACKAGE'),
+            ),
+          ],
+        ),
       ),
     );
   }

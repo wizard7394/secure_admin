@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/utils/service_locator.dart';
 import '../bloc/course_details_bloc.dart';
+import '../../data/course_repository.dart';
 
 class CourseDetailsScreen extends StatelessWidget {
   final String courseId;
@@ -76,7 +77,7 @@ class _CourseDetailsView extends StatelessWidget {
           } else if (state is CourseDetailsLoaded) {
             final treeData = state.courseData['tree'] as List<dynamic>? ?? [];
 
-            return SingleChildScrollView(
+            return Padding(
               padding: const EdgeInsets.all(32.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,47 +94,22 @@ class _CourseDetailsView extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Row(
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: () => _showAutoBuildDialog(context),
-                            icon: const Icon(Icons.auto_awesome, size: 16),
-                            label: const Text('AUTO-BUILD'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orangeAccent.withValues(
-                                alpha: 0.1,
-                              ),
-                              foregroundColor: Colors.orangeAccent,
-                              elevation: 0,
-                              side: const BorderSide(
-                                color: Colors.orangeAccent,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 16,
-                              ),
-                            ),
+                      ElevatedButton.icon(
+                        onPressed: () => _showNodeDialog(context, null, null),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('ADD LESSON / FOLDER'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(
+                            0xFF00E676,
+                          ).withValues(alpha: 0.1),
+                          foregroundColor: const Color(0xFF00E676),
+                          elevation: 0,
+                          side: const BorderSide(color: Color(0xFF00E676)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
                           ),
-                          const SizedBox(width: 16),
-                          ElevatedButton.icon(
-                            onPressed: () =>
-                                _showNodeDialog(context, null, null),
-                            icon: const Icon(Icons.add, size: 18),
-                            label: const Text('ADD LESSON / FOLDER'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(
-                                0xFF00E676,
-                              ).withValues(alpha: 0.1),
-                              foregroundColor: const Color(0xFF00E676),
-                              elevation: 0,
-                              side: const BorderSide(color: Color(0xFF00E676)),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 16,
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
@@ -144,18 +120,17 @@ class _CourseDetailsView extends StatelessWidget {
                       style: TextStyle(color: Colors.white38, letterSpacing: 1),
                     )
                   else
-                    ...treeData.asMap().entries.map((entry) {
-                      final indexStr = (entry.key + 1).toString().padLeft(
-                        2,
-                        '0',
-                      );
-                      return _buildNodeItem(
-                        context,
-                        entry.value,
-                        indexStr,
-                        0.0,
-                      );
-                    }),
+                    Expanded(
+                      child: _ReorderableNodeTree(
+                        nodes: treeData,
+                        courseId: courseId,
+                        onEdit: (node) => _showNodeDialog(context, node, null),
+                        onDelete: (id) => _confirmDeleteNode(context, id),
+                        onAddChild: (parentId) =>
+                            _showNodeDialog(context, null, parentId),
+                        isRoot: true,
+                      ),
+                    ),
                 ],
               ),
             );
@@ -166,208 +141,12 @@ class _CourseDetailsView extends StatelessWidget {
     );
   }
 
-  Widget _buildNodeItem(
-    BuildContext context,
-    dynamic node,
-    String number,
-    double indent,
-  ) {
-    final bool isFolder = node['item_type'] == 'folder';
-    final String title = node['title'] ?? 'UNTITLED';
-    final String duration = node['duration']?.toString() ?? '--:--';
-    final bool hasVault = node['vault'] != null;
-    final List<dynamic> children = node['children'] ?? [];
-    final int nodeId = node['id'];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          margin: EdgeInsets.only(left: indent, bottom: 8),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: const Color(0xFF141414),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Row(
-            children: [
-              if (isFolder)
-                const Icon(
-                  Icons.folder_open_outlined,
-                  color: Color(0xFF00E676),
-                  size: 24,
-                )
-              else
-                Text(
-                  number,
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontFamily: 'monospace',
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              SizedBox(width: isFolder ? 16 : 24),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
-                ),
-              ),
-              if (!isFolder) ...[
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: !hasVault
-                        ? const Color(0xFF00E676).withValues(alpha: 0.1)
-                        : Colors.orangeAccent.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: !hasVault
-                          ? const Color(0xFF00E676).withValues(alpha: 0.5)
-                          : Colors.orangeAccent.withValues(alpha: 0.5),
-                    ),
-                  ),
-                  child: Text(
-                    !hasVault ? 'FREE' : 'SECURED',
-                    style: TextStyle(
-                      color: !hasVault
-                          ? const Color(0xFF00E676)
-                          : Colors.orangeAccent,
-                      fontSize: 10,
-                      letterSpacing: 1,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 24),
-                Text(
-                  duration,
-                  style: const TextStyle(
-                    color: Colors.white54,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-              ],
-              const SizedBox(width: 24),
-              if (isFolder)
-                IconButton(
-                  icon: const Icon(
-                    Icons.add_circle_outline,
-                    color: Color(0xFF00E676),
-                    size: 20,
-                  ),
-                  onPressed: () => _showNodeDialog(context, null, nodeId),
-                  tooltip: 'Add child',
-                  hoverColor: const Color(0xFF00E676).withValues(alpha: 0.1),
-                ),
-              IconButton(
-                icon: const Icon(
-                  Icons.edit_outlined,
-                  color: Colors.white54,
-                  size: 20,
-                ),
-                onPressed: () => _showNodeDialog(context, node, null),
-                tooltip: 'Edit',
-                hoverColor: Colors.white10,
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.delete_outline,
-                  color: Colors.redAccent,
-                  size: 20,
-                ),
-                onPressed: () => _confirmDeleteNode(context, nodeId),
-                tooltip: 'Delete',
-                hoverColor: Colors.redAccent.withValues(alpha: 0.1),
-              ),
-            ],
-          ),
-        ),
-        if (children.isNotEmpty)
-          ...children.asMap().entries.map((childEntry) {
-            final childIndexStr = '$number.${childEntry.key + 1}';
-            return _buildNodeItem(
-              context,
-              childEntry.value,
-              childIndexStr,
-              indent + 32.0,
-            );
-          }),
-      ],
-    );
-  }
-
-  void _showAutoBuildDialog(BuildContext context) {
-    final bloc = context.read<CourseDetailsBloc>();
-    final batchCtrl = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF141414),
-        title: const Text(
-          'AUTO-BUILD FROM SERVER',
-          style: TextStyle(
-            color: Colors.orangeAccent,
-            fontSize: 14,
-            letterSpacing: 1.5,
-          ),
-        ),
-        content: SizedBox(
-          width: 450,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Enter the batch folder name exactly as it is on the server to auto-generate the course structure.',
-                style: TextStyle(color: Colors.white70),
-              ),
-              const SizedBox(height: 16),
-              _buildDialogField('BATCH DIRECTORY NAME', batchCtrl),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text(
-              'CANCEL',
-              style: TextStyle(color: Colors.white54),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (batchCtrl.text.isNotEmpty) {
-                bloc.add(
-                  AutoBuildCourseEvent(int.parse(courseId), batchCtrl.text),
-                );
-                Navigator.pop(dialogContext);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orangeAccent,
-              foregroundColor: Colors.black,
-            ),
-            child: const Text('START BUILD'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showNodeDialog(
     BuildContext context,
     dynamic existingNode,
     int? forceParentId,
   ) {
-    final bloc = context
-        .read<CourseDetailsBloc>(); // کانتکست قبل از باز شدن دیالوگ ذخیره شد
+    final bloc = context.read<CourseDetailsBloc>();
 
     final isEditing = existingNode != null;
     final titleCtrl = TextEditingController(
@@ -604,6 +383,269 @@ class _CourseDetailsView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ReorderableNodeTree extends StatefulWidget {
+  final List<dynamic> nodes;
+  final String courseId;
+  final Function(dynamic) onEdit;
+  final Function(int) onDelete;
+  final Function(int) onAddChild;
+  final bool isRoot;
+
+  const _ReorderableNodeTree({
+    required this.nodes,
+    required this.courseId,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onAddChild,
+    this.isRoot = false,
+  });
+
+  @override
+  State<_ReorderableNodeTree> createState() => _ReorderableNodeTreeState();
+}
+
+class _ReorderableNodeTreeState extends State<_ReorderableNodeTree> {
+  late List<dynamic> _localNodes;
+  final Set<int> _expandedNodes = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _syncNodes();
+  }
+
+  @override
+  void didUpdateWidget(_ReorderableNodeTree oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncNodes();
+  }
+
+  void _syncNodes() {
+    _localNodes = List.from(widget.nodes);
+    _localNodes.sort(
+      (a, b) => (a['sort_order'] ?? 0).compareTo(b['sort_order'] ?? 0),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ReorderableListView.builder(
+      shrinkWrap: !widget.isRoot,
+      physics: widget.isRoot
+          ? const AlwaysScrollableScrollPhysics()
+          : const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      itemCount: _localNodes.length,
+      onReorderItem: (int oldIndex, int newIndex) async {
+        setState(() {
+          final item = _localNodes.removeAt(oldIndex);
+          _localNodes.insert(newIndex, item);
+        });
+
+        List<Map<String, dynamic>> updates = [];
+        for (int i = 0; i < _localNodes.length; i++) {
+          updates.add({'node_id': _localNodes[i]['id'], 'sort_order': i + 1});
+        }
+
+        final messenger = ScaffoldMessenger.of(context);
+
+        try {
+          await sl<AdminCourseRepository>().reorderNodes(updates);
+        } catch (e) {
+          messenger.showSnackBar(SnackBar(content: Text('SORT ERROR: $e')));
+        }
+      },
+      itemBuilder: (context, index) {
+        final node = _localNodes[index];
+        return _buildInteractiveNode(node, index);
+      },
+    );
+  }
+
+  Widget _buildInteractiveNode(dynamic node, int index) {
+    final bool isFolder = node['item_type'] == 'folder';
+    final String title = node['title'] ?? 'UNTITLED';
+    final String duration = node['duration']?.toString() ?? '--:--';
+    final bool hasVault = node['vault'] != null || node['vault_id'] != null;
+    final List<dynamic> children = node['children'] ?? [];
+    final int nodeId = node['id'];
+    final bool isExpanded = _expandedNodes.contains(nodeId);
+
+    Widget headerContent = Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141414),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        children: [
+          ReorderableDragStartListener(
+            index: index,
+            child: const MouseRegion(
+              cursor: SystemMouseCursors.grab,
+              child: Padding(
+                padding: EdgeInsets.only(right: 16.0),
+                child: Icon(
+                  Icons.drag_indicator,
+                  color: Colors.white38,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+          if (isFolder)
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (isExpanded) {
+                    _expandedNodes.remove(nodeId);
+                  } else {
+                    _expandedNodes.add(nodeId);
+                  }
+                });
+              },
+              child: Icon(
+                isExpanded
+                    ? Icons.keyboard_arrow_down
+                    : Icons.keyboard_arrow_right,
+                color: const Color(0xFF00E676),
+                size: 28,
+              ),
+            )
+          else
+            const Icon(
+              Icons.play_circle_outline,
+              color: Colors.white54,
+              size: 24,
+            ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: GestureDetector(
+              onTap: isFolder
+                  ? () {
+                      setState(() {
+                        if (isExpanded) {
+                          _expandedNodes.remove(nodeId);
+                        } else {
+                          _expandedNodes.add(nodeId);
+                        }
+                      });
+                    }
+                  : null,
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: isFolder ? const Color(0xFF00E676) : Colors.white,
+                  fontSize: 16,
+                  fontWeight: isFolder ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+          ),
+          if (!isFolder) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: !hasVault
+                    ? const Color(0xFF00E676).withValues(alpha: 0.1)
+                    : Colors.blueAccent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: !hasVault
+                      ? const Color(0xFF00E676).withValues(alpha: 0.5)
+                      : Colors.blueAccent.withValues(alpha: 0.5),
+                ),
+              ),
+              child: Text(
+                !hasVault ? 'FREE' : 'SECURED',
+                style: TextStyle(
+                  color: !hasVault
+                      ? const Color(0xFF00E676)
+                      : Colors.blueAccent,
+                  fontSize: 10,
+                  letterSpacing: 1,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 24),
+            Text(
+              duration,
+              style: const TextStyle(
+                color: Colors.white54,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ],
+          const SizedBox(width: 24),
+          if (isFolder)
+            IconButton(
+              icon: const Icon(
+                Icons.add_circle_outline,
+                color: Color(0xFF00E676),
+                size: 20,
+              ),
+              onPressed: () => widget.onAddChild(nodeId),
+              tooltip: 'Add content to folder',
+            ),
+          IconButton(
+            icon: const Icon(
+              Icons.edit_outlined,
+              color: Colors.white54,
+              size: 20,
+            ),
+            onPressed: () => widget.onEdit(node),
+          ),
+          IconButton(
+            icon: const Icon(
+              Icons.delete_outline,
+              color: Colors.redAccent,
+              size: 20,
+            ),
+            onPressed: () => widget.onDelete(nodeId),
+          ),
+        ],
+      ),
+    );
+
+    return Container(
+      key: ValueKey(nodeId),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          headerContent,
+          if (isFolder && isExpanded)
+            Padding(
+              padding: const EdgeInsets.only(left: 32.0, bottom: 8.0),
+              child: children.isNotEmpty
+                  ? _ReorderableNodeTree(
+                      nodes: children,
+                      courseId: widget.courseId,
+                      onEdit: widget.onEdit,
+                      onDelete: widget.onDelete,
+                      onAddChild: widget.onAddChild,
+                      isRoot: false,
+                    )
+                  : const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text(
+                        'EMPTY SECTION',
+                        style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 12,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+            ),
+        ],
+      ),
     );
   }
 }
