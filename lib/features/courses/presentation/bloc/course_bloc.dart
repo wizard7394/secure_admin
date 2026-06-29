@@ -7,9 +7,8 @@ class FetchCourses extends CourseEvent {}
 
 class CreateCourseEvent extends CourseEvent {
   final String title;
-  final String watermarkText;
-  final String watermarkColor;
-  CreateCourseEvent(this.title, this.watermarkText, this.watermarkColor);
+  final String baseStreamUrl;
+  CreateCourseEvent(this.title, this.baseStreamUrl);
 }
 
 class DeleteCourseEvent extends CourseEvent {
@@ -34,45 +33,35 @@ class CourseError extends CourseState {
 }
 
 class CourseBloc extends Bloc<CourseEvent, CourseState> {
-  final AdminCourseRepository repository;
+  final AdminCourseRepository _repository;
 
-  CourseBloc(this.repository) : super(CourseInitial()) {
+  CourseBloc(this._repository) : super(CourseInitial()) {
     on<FetchCourses>((event, emit) async {
       emit(CourseLoading());
-      await _loadCourses(emit);
+      try {
+        final courses = await _repository.getCourses();
+        emit(CourseLoaded(courses));
+      } catch (e) {
+        emit(CourseError(e.toString()));
+      }
     });
 
     on<CreateCourseEvent>((event, emit) async {
-      emit(CourseLoading());
       try {
-        await repository.createCourse(
-          event.title,
-          event.watermarkText,
-          event.watermarkColor,
-        );
-        await _loadCourses(emit);
+        await _repository.createCourse(event.title, event.baseStreamUrl);
+        add(FetchCourses());
       } catch (e) {
-        emit(CourseError(e.toString().replaceAll('Exception: ', '')));
+        emit(CourseError(e.toString()));
       }
     });
 
     on<DeleteCourseEvent>((event, emit) async {
-      emit(CourseLoading());
       try {
-        await repository.deleteCourse(event.courseId);
-        await _loadCourses(emit);
+        await _repository.deleteCourse(event.courseId);
+        add(FetchCourses());
       } catch (e) {
-        emit(CourseError(e.toString().replaceAll('Exception: ', '')));
+        emit(CourseError(e.toString()));
       }
     });
-  }
-
-  Future<void> _loadCourses(Emitter<CourseState> emit) async {
-    try {
-      final data = await repository.getCourses();
-      emit(CourseLoaded(data));
-    } catch (e) {
-      emit(CourseError(e.toString().replaceAll('Exception: ', '')));
-    }
   }
 }

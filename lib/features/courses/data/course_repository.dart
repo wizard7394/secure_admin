@@ -10,30 +10,34 @@ class AdminCourseRepository {
     return res.data as List<dynamic>? ?? [];
   }
 
-  Future<void> updateCourse(int courseId, String title, bool isActive) async {
-    await _apiClient.dio.put(
-      '/course/admin/update/$courseId',
-      data: {'title': title, 'is_active': isActive},
-    );
-  }
-
   Future<Map<String, dynamic>> getCourseTree(int courseId) async {
     final res = await _apiClient.dio.get('/course/admin/view/$courseId');
     return res.data;
   }
 
-  Future<void> createCourse(
-    String title,
-    String watermarkText,
-    String watermarkColor,
-  ) async {
+  Future<void> createCourse(String title, String baseStreamUrl) async {
     await _apiClient.dio.post(
       '/course/admin/create',
       data: {
         'title': title,
-        'watermark_text': watermarkText,
-        'watermark_color': watermarkColor,
+        'base_stream_url': baseStreamUrl,
         'is_active': true,
+      },
+    );
+  }
+
+  Future<void> updateCourse(
+    int courseId,
+    String title,
+    String baseStreamUrl,
+    bool isActive,
+  ) async {
+    await _apiClient.dio.put(
+      '/course/admin/update/$courseId',
+      data: {
+        'title': title,
+        'base_stream_url': baseStreamUrl,
+        'is_active': isActive,
       },
     );
   }
@@ -48,10 +52,7 @@ class AdminCourseRepository {
     String itemType,
     String title,
     int sortOrder, {
-    String? videoUrl,
     int? duration,
-    String? attachmentUrl,
-    int? vaultId,
   }) async {
     await _apiClient.dio.post(
       '/course/admin/node/create',
@@ -61,10 +62,7 @@ class AdminCourseRepository {
         'item_type': itemType,
         'title': title,
         'sort_order': sortOrder,
-        'video_url': videoUrl,
         'duration': duration,
-        'attachment_url': attachmentUrl,
-        'vault_id': vaultId,
       },
     );
   }
@@ -73,30 +71,16 @@ class AdminCourseRepository {
     int nodeId,
     String title,
     int sortOrder, {
-    String? videoUrl,
     int? duration,
-    String? attachmentUrl,
-    int? vaultId,
   }) async {
     await _apiClient.dio.put(
       '/course/admin/node/update/$nodeId',
-      data: {
-        'title': title,
-        'sort_order': sortOrder,
-        'video_url': videoUrl,
-        'duration': duration,
-        'attachment_url': attachmentUrl,
-        'vault_id': vaultId,
-      },
+      data: {'title': title, 'sort_order': sortOrder, 'duration': duration},
     );
   }
 
   Future<void> deleteNode(int nodeId) async {
     await _apiClient.dio.delete('/course/admin/node/delete/$nodeId');
-  }
-
-  Future<void> reorderNodes(List<Map<String, dynamic>> reorderData) async {
-    await _apiClient.dio.post('/course/admin/node/reorder', data: reorderData);
   }
 
   Future<void> injectEncryptorKeys(Map<String, dynamic> data) async {
@@ -105,8 +89,12 @@ class AdminCourseRepository {
 
   Future<void> autoBuildCourse(int courseId, String batchName) async {
     await _apiClient.dio.post(
-      '/api/v1/admin/vault/trigger-autobuild/$courseId',
+      '/admin/vault/trigger-autobuild/$courseId',
       data: {'batch_name': batchName},
     );
+  }
+
+  Future<void> reorderNodes(List<Map<String, dynamic>> reorderData) async {
+    await _apiClient.dio.post('/course/admin/node/reorder', data: reorderData);
   }
 }

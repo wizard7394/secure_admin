@@ -394,6 +394,9 @@ class _CoursesView extends StatelessWidget {
 
   void _showCreateCourseDialog(BuildContext context) {
     final titleController = TextEditingController();
+    final baseUrlController = TextEditingController(
+      text: 'https://cdn.nabegheha.com/download/',
+    );
 
     showDialog(
       context: context,
@@ -411,7 +414,14 @@ class _CoursesView extends StatelessWidget {
           width: 450,
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: [_buildDialogField('COURSE TITLE', titleController)],
+            children: [
+              _buildDialogField('COURSE TITLE', titleController),
+              const SizedBox(height: 16),
+              _buildDialogField(
+                'BASE STREAM URL (CDN FOLDER)',
+                baseUrlController,
+              ),
+            ],
           ),
         ),
         actions: [
@@ -426,7 +436,10 @@ class _CoursesView extends StatelessWidget {
             onPressed: () {
               if (titleController.text.isNotEmpty) {
                 context.read<CourseBloc>().add(
-                  CreateCourseEvent(titleController.text, '', ''),
+                  CreateCourseEvent(
+                    titleController.text,
+                    baseUrlController.text,
+                  ),
                 );
                 Navigator.pop(dialogContext);
               }
@@ -444,6 +457,9 @@ class _CoursesView extends StatelessWidget {
 
   void _showEditCourseDialog(BuildContext context, dynamic course) {
     final titleController = TextEditingController(text: course['title']);
+    final baseUrlController = TextEditingController(
+      text: course['base_stream_url'] ?? 'https://cdn.nabegheha.com/download/',
+    );
     bool statusValue = course['is_active'] ?? true;
     final int courseId = course['id'];
 
@@ -467,6 +483,11 @@ class _CoursesView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildDialogField('COURSE TITLE', titleController),
+                const SizedBox(height: 16),
+                _buildDialogField(
+                  'BASE STREAM URL (CDN FOLDER)',
+                  baseUrlController,
+                ),
                 const SizedBox(height: 24),
                 const Text(
                   'COURSE AVAILABILITY',
@@ -515,6 +536,7 @@ class _CoursesView extends StatelessWidget {
                     await sl<AdminCourseRepository>().updateCourse(
                       courseId,
                       titleController.text,
+                      baseUrlController.text,
                       statusValue,
                     );
                     if (!dialogContext.mounted) return;
