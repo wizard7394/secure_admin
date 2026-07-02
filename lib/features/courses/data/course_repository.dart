@@ -84,12 +84,12 @@ class AdminCourseRepository {
   }
 
   Future<void> injectEncryptorKeys(Map<String, dynamic> data) async {
-    await _apiClient.dio.post('/admin/vault/bulk', data: data);
+    await _apiClient.dio.post('/course/admin/vault/bulk', data: data);
   }
 
   Future<void> autoBuildCourse(int courseId, String batchName) async {
     await _apiClient.dio.post(
-      '/admin/vault/trigger-autobuild/$courseId',
+      '/course/admin/vault/trigger-autobuild/$courseId',
       data: {'batch_name': batchName},
     );
   }
